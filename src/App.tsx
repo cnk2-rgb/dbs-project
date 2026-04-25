@@ -83,7 +83,7 @@ function BedroomScene({ isAwake }: { isAwake: boolean }) {
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <pointLight position={[-2.85, 1.15, -2.3]} intensity={4.3} color="#a97855" distance={6.8} decay={2} />
+      <pointLight position={[-2.85, 1.15, -2.3]} intensity={3.8} color="#8fb7c6" distance={6.8} decay={2} />
       <pointLight position={[2.3, 2.2, -1.7]} intensity={1.05} color="#bad6df" distance={8} decay={2} />
       <pointLight position={[0, 1.2, 2.05]} intensity={1.15} color="#7f9495" distance={3.5} decay={2.3} />
 
@@ -245,39 +245,26 @@ function Bed() {
   const frame = useRoughMaterial("#181412", "#0a0808", 0.76, "wood");
   const mattress = useRoughMaterial("#7c776d", "#36332f", 0.96, "fabric");
   const blanket = useRoughMaterial("#2a3431", "#0d1211", 0.98, "fabric");
-  const pillow = useRoughMaterial("#8a8275", "#3a352f", 0.92, "fabric");
 
   return (
     <group position={[0, 0, 2.55]}>
       <mesh position={[0, 0.34, 0]} castShadow receiveShadow>
-        <boxGeometry args={[2.35, 0.24, 2.75, 8, 2, 8]} />
+        <boxGeometry args={[1.72, 0.24, 2.75, 8, 2, 8]} />
         <primitive object={mattress} attach="material" />
       </mesh>
 
       <mesh position={[0, 0.16, 0]} castShadow receiveShadow>
-        <boxGeometry args={[2.55, 0.25, 2.95]} />
+        <boxGeometry args={[1.94, 0.25, 2.95]} />
         <primitive object={frame} attach="material" />
       </mesh>
 
       <mesh position={[0, 0.56, -0.18]} castShadow receiveShadow>
-        <boxGeometry args={[2.18, 0.18, 1.85, 12, 2, 12]} />
+        <boxGeometry args={[1.52, 0.18, 1.85, 12, 2, 12]} />
         <primitive object={blanket} attach="material" />
       </mesh>
 
-      <mesh position={[-0.43, 0.63, 1.08]} scale={[0.78, 0.18, 0.46]} rotation={[0.08, -0.04, 0.03]} castShadow receiveShadow>
-        <sphereGeometry args={[0.5, 22, 12]} />
-        <primitive object={pillow} attach="material" />
-      </mesh>
-
-      <mesh position={[0.45, 0.61, 1.07]} scale={[0.72, 0.16, 0.44]} rotation={[0.04, 0.08, -0.02]} castShadow receiveShadow>
-        <sphereGeometry args={[0.5, 22, 12]} />
-        <primitive object={pillow.clone()} attach="material" />
-      </mesh>
-
-      <BlanketFolds material={blanket} />
-
       <mesh position={[0, 1.08, 1.48]} castShadow receiveShadow>
-        <boxGeometry args={[2.7, 1.25, 0.22, 10, 6, 1]} />
+        <boxGeometry args={[2.02, 1.25, 0.22, 10, 6, 1]} />
         <primitive object={frame.clone()} attach="material" />
       </mesh>
     </group>
@@ -288,7 +275,6 @@ function Furniture() {
   const wood = useRoughMaterial("#2a211b", "#0d0a08", 0.88, "wood");
   const darkMetal = useRoughMaterial("#111415", "#050606", 0.8);
   const paper = useRoughMaterial("#504940", "#1d1a17", 0.9, "paper");
-  const phone = useRoughMaterial("#080909", "#000000", 0.55);
 
   return (
     <group>
@@ -317,17 +303,7 @@ function Furniture() {
           <boxGeometry args={[0.42, 0.72, 0.025]} />
           <primitive object={paper} attach="material" />
         </mesh>
-        <mesh position={[-0.34, 0.56, 0.06]} rotation={[-Math.PI / 2, 0, 0.22]} castShadow>
-          <boxGeometry args={[0.26, 0.5, 0.028]} />
-          <primitive object={phone} attach="material" />
-        </mesh>
-        <mesh position={[-0.34, 0.578, 0.06]} rotation={[-Math.PI / 2, 0, 0.22]}>
-          <planeGeometry args={[0.2, 0.38]} />
-          <meshBasicMaterial color="#080b0a" transparent opacity={0.86} />
-        </mesh>
       </group>
-
-      <DeskChair />
 
       <group position={[2.86, 0, -1.25]}>
         <mesh position={[0, 1.55, 0]} castShadow receiveShadow>
@@ -354,18 +330,17 @@ function Furniture() {
         </mesh>
       </group>
 
-      <mesh position={[-2.85, 0.72, 1.8]} castShadow receiveShadow>
-        <boxGeometry args={[0.68, 0.7, 0.56]} />
-        <primitive object={wood.clone()} attach="material" />
-      </mesh>
-      <mesh position={[-2.85, 1.15, 1.68]} castShadow>
-        <cylinderGeometry args={[0.16, 0.23, 0.28, 16]} />
-        <meshStandardMaterial color="#241611" roughness={0.92} emissive="#1c0c04" emissiveIntensity={0.3} />
-      </mesh>
-      <mesh position={[-2.85, 1.3, 1.68]} castShadow>
-        <cylinderGeometry args={[0.24, 0.16, 0.32, 16, 1, true]} />
-        <meshStandardMaterial color="#4b3228" roughness={0.98} transparent opacity={0.9} />
-      </mesh>
+      <group position={[-1.16, 0, 2.2]}>
+        <mesh position={[0, 0.69, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.54, 0.64, 0.48]} />
+          <primitive object={wood.clone()} attach="material" />
+        </mesh>
+        <mesh position={[0, 1.04, 0.01]} castShadow receiveShadow>
+          <boxGeometry args={[0.6, 0.07, 0.52]} />
+          <primitive object={wood.clone()} attach="material" />
+        </mesh>
+        <SmallPhone />
+      </group>
     </group>
   );
 }
@@ -412,50 +387,40 @@ function Baseboards() {
   );
 }
 
-function BlanketFolds({ material }: { material: MeshStandardMaterial }) {
-  return (
-    <group>
-      <mesh position={[-0.58, 0.68, -0.74]} scale={[0.22, 0.07, 1.15]} rotation={[0.03, 0, 0.04]} castShadow receiveShadow>
-        <sphereGeometry args={[0.5, 18, 10]} />
-        <primitive object={material.clone()} attach="material" />
-      </mesh>
-      <mesh position={[0.18, 0.69, -0.62]} scale={[0.28, 0.075, 1.05]} rotation={[0, -0.02, -0.02]} castShadow receiveShadow>
-        <sphereGeometry args={[0.5, 18, 10]} />
-        <primitive object={material.clone()} attach="material" />
-      </mesh>
-      <mesh position={[0.76, 0.66, -0.38]} scale={[0.18, 0.055, 0.82]} rotation={[-0.02, 0.01, -0.06]} castShadow receiveShadow>
-        <sphereGeometry args={[0.5, 18, 10]} />
-        <primitive object={material.clone()} attach="material" />
-      </mesh>
-    </group>
+function SmallPhone() {
+  const body = useRoughMaterial("#050606", "#000000", 0.62, "none");
+  const bevel = useRoughMaterial("#151717", "#050606", 0.72, "none");
+  const screen = useMemo(
+    () =>
+      new MeshStandardMaterial({
+        color: "#071012",
+        roughness: 0.86,
+        metalness: 0.03,
+        emissive: "#0b2428",
+        emissiveIntensity: 0.58,
+      }),
+    [],
   );
-}
-
-function DeskChair() {
-  const wood = useRoughMaterial("#171210", "#060403", 0.9, "wood");
-  const fabric = useRoughMaterial("#191d1b", "#070908", 0.96, "fabric");
 
   return (
-    <group position={[-2.25, 0, -1.35]} rotation={[0, 0.28, 0]}>
-      <mesh position={[0, 0.46, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.74, 0.1, 0.68]} />
-        <primitive object={fabric} attach="material" />
+    <group position={[0.16, 1.095, 0.14]} rotation={[-Math.PI / 2, 0, MathUtils.degToRad(-14)]}>
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.18, 0.36, 0.024]} />
+        <primitive object={body} attach="material" />
       </mesh>
-      <mesh position={[0.03, 1.02, 0.28]} rotation={[MathUtils.degToRad(-7), 0, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.78, 0.9, 0.1]} />
-        <primitive object={wood} attach="material" />
+      <pointLight position={[0, 0, 0.08]} intensity={0.16} color="#4fb5c6" distance={0.7} decay={2} />
+      <mesh position={[0, 0, 0.021]}>
+        <planeGeometry args={[0.14, 0.28]} />
+        <primitive object={screen} attach="material" />
       </mesh>
-      {[
-        [-0.27, 0.23, -0.23],
-        [0.27, 0.23, -0.23],
-        [-0.27, 0.23, 0.23],
-        [0.27, 0.23, 0.23],
-      ].map(([x, y, z]) => (
-        <mesh key={`${x}-${z}`} position={[x, y, z]} castShadow>
-          <boxGeometry args={[0.07, 0.46, 0.07]} />
-          <primitive object={wood.clone()} attach="material" />
-        </mesh>
-      ))}
+      <mesh position={[0, -0.16, 0.024]} castShadow>
+        <boxGeometry args={[0.06, 0.008, 0.005]} />
+        <primitive object={bevel} attach="material" />
+      </mesh>
+      <mesh position={[0, 0.155, 0.024]} castShadow>
+        <boxGeometry args={[0.036, 0.006, 0.005]} />
+        <primitive object={bevel.clone()} attach="material" />
+      </mesh>
     </group>
   );
 }
