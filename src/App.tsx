@@ -1,16 +1,14 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
-import { BlendFunction } from "postprocessing";
+import { EffectComposer, Vignette } from "@react-three/postprocessing";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import {
-  AdditiveBlending,
-  BufferGeometry,
+  CanvasTexture,
   Color,
-  Float32BufferAttribute,
-  Group,
   MathUtils,
   MeshStandardMaterial,
+  RepeatWrapping,
+  SRGBColorSpace,
   Vector3,
 } from "three";
 
@@ -51,7 +49,6 @@ function App() {
       </div>
 
       <div className="sleep-vignette" />
-      <div className="film-grain" />
 
       {!isAwake && (
         <div className="start-overlay">
@@ -94,10 +91,8 @@ function BedroomScene({ isAwake }: { isAwake: boolean }) {
       <Bed />
       <Furniture />
       <ScareDetails />
-      <DustMotes />
 
       <EffectComposer multisampling={0}>
-        <Noise opacity={0.23} premultiply blendFunction={BlendFunction.ADD} />
         <Vignette eskil={false} offset={0.38} darkness={0.34} />
       </EffectComposer>
     </>
@@ -200,10 +195,10 @@ function LookOnlyCamera({ enabled }: { enabled: boolean }) {
 }
 
 function RoomShell() {
-  const floorMaterial = useRoughMaterial("#252626", "#161716", 0.8);
-  const wallMaterial = useRoughMaterial("#202221", "#111514", 0.7);
-  const ceilingMaterial = useRoughMaterial("#181a19", "#0b0d0c", 0.6);
-  const rugMaterial = useRoughMaterial("#15100f", "#080606", 0.9);
+  const floorMaterial = useRoughMaterial("#252626", "#161716", 0.82, "concrete");
+  const wallMaterial = useRoughMaterial("#202221", "#111514", 0.76, "paint");
+  const ceilingMaterial = useRoughMaterial("#181a19", "#0b0d0c", 0.68, "paint");
+  const rugMaterial = useRoughMaterial("#15100f", "#080606", 0.96, "fabric");
 
   return (
     <group>
@@ -237,6 +232,8 @@ function RoomShell() {
         <primitive object={rugMaterial} attach="material" />
       </mesh>
 
+      <FloorSeams />
+      <Baseboards />
       <Window />
       <Door />
       <CeilingLight />
@@ -245,10 +242,10 @@ function RoomShell() {
 }
 
 function Bed() {
-  const frame = useRoughMaterial("#181412", "#0a0808", 0.7);
-  const mattress = useRoughMaterial("#7c776d", "#36332f", 0.9);
-  const blanket = useRoughMaterial("#2a3431", "#0d1211", 0.95);
-  const pillow = useRoughMaterial("#8a8275", "#3a352f", 0.8);
+  const frame = useRoughMaterial("#181412", "#0a0808", 0.76, "wood");
+  const mattress = useRoughMaterial("#7c776d", "#36332f", 0.96, "fabric");
+  const blanket = useRoughMaterial("#2a3431", "#0d1211", 0.98, "fabric");
+  const pillow = useRoughMaterial("#8a8275", "#3a352f", 0.92, "fabric");
 
   return (
     <group position={[0, 0, 2.55]}>
@@ -267,15 +264,17 @@ function Bed() {
         <primitive object={blanket} attach="material" />
       </mesh>
 
-      <mesh position={[-0.43, 0.63, 1.08]} rotation={[0.08, -0.04, 0.03]} castShadow receiveShadow>
-        <boxGeometry args={[0.78, 0.2, 0.54, 8, 2, 6]} />
+      <mesh position={[-0.43, 0.63, 1.08]} scale={[0.78, 0.18, 0.46]} rotation={[0.08, -0.04, 0.03]} castShadow receiveShadow>
+        <sphereGeometry args={[0.5, 22, 12]} />
         <primitive object={pillow} attach="material" />
       </mesh>
 
-      <mesh position={[0.45, 0.61, 1.07]} rotation={[0.04, 0.08, -0.02]} castShadow receiveShadow>
-        <boxGeometry args={[0.72, 0.18, 0.5, 8, 2, 6]} />
+      <mesh position={[0.45, 0.61, 1.07]} scale={[0.72, 0.16, 0.44]} rotation={[0.04, 0.08, -0.02]} castShadow receiveShadow>
+        <sphereGeometry args={[0.5, 22, 12]} />
         <primitive object={pillow.clone()} attach="material" />
       </mesh>
+
+      <BlanketFolds material={blanket} />
 
       <mesh position={[0, 1.08, 1.48]} castShadow receiveShadow>
         <boxGeometry args={[2.7, 1.25, 0.22, 10, 6, 1]} />
@@ -286,9 +285,9 @@ function Bed() {
 }
 
 function Furniture() {
-  const wood = useRoughMaterial("#2a211b", "#0d0a08", 0.85);
+  const wood = useRoughMaterial("#2a211b", "#0d0a08", 0.88, "wood");
   const darkMetal = useRoughMaterial("#111415", "#050606", 0.8);
-  const paper = useRoughMaterial("#504940", "#1d1a17", 0.85);
+  const paper = useRoughMaterial("#504940", "#1d1a17", 0.9, "paper");
   const phone = useRoughMaterial("#080909", "#000000", 0.55);
 
   return (
@@ -328,6 +327,8 @@ function Furniture() {
         </mesh>
       </group>
 
+      <DeskChair />
+
       <group position={[2.86, 0, -1.25]}>
         <mesh position={[0, 1.55, 0]} castShadow receiveShadow>
           <boxGeometry args={[0.16, 3.1, 0.32]} />
@@ -365,6 +366,96 @@ function Furniture() {
         <cylinderGeometry args={[0.24, 0.16, 0.32, 16, 1, true]} />
         <meshStandardMaterial color="#4b3228" roughness={0.98} transparent opacity={0.9} />
       </mesh>
+    </group>
+  );
+}
+
+function FloorSeams() {
+  const seam = useRoughMaterial("#101211", "#000000", 0.92, "none");
+
+  return (
+    <group>
+      {[-2.1, -0.7, 0.7, 2.1].map((x) => (
+        <mesh key={`x-${x}`} position={[x, 0.034, 0]} receiveShadow>
+          <boxGeometry args={[0.018, 0.01, 8]} />
+          <primitive object={seam.clone()} attach="material" />
+        </mesh>
+      ))}
+      {[-2.4, -1.2, 0, 1.2, 2.4].map((z) => (
+        <mesh key={`z-${z}`} position={[0, 0.036, z]} receiveShadow>
+          <boxGeometry args={[7, 0.01, 0.018]} />
+          <primitive object={seam.clone()} attach="material" />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function Baseboards() {
+  const trim = useRoughMaterial("#181411", "#070504", 0.86, "wood");
+
+  return (
+    <group>
+      <mesh position={[0, 0.18, -3.88]} castShadow receiveShadow>
+        <boxGeometry args={[6.86, 0.18, 0.08]} />
+        <primitive object={trim} attach="material" />
+      </mesh>
+      <mesh position={[-3.38, 0.18, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, 0.18, 7.78]} />
+        <primitive object={trim.clone()} attach="material" />
+      </mesh>
+      <mesh position={[3.38, 0.18, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, 0.18, 7.78]} />
+        <primitive object={trim.clone()} attach="material" />
+      </mesh>
+    </group>
+  );
+}
+
+function BlanketFolds({ material }: { material: MeshStandardMaterial }) {
+  return (
+    <group>
+      <mesh position={[-0.58, 0.68, -0.74]} scale={[0.22, 0.07, 1.15]} rotation={[0.03, 0, 0.04]} castShadow receiveShadow>
+        <sphereGeometry args={[0.5, 18, 10]} />
+        <primitive object={material.clone()} attach="material" />
+      </mesh>
+      <mesh position={[0.18, 0.69, -0.62]} scale={[0.28, 0.075, 1.05]} rotation={[0, -0.02, -0.02]} castShadow receiveShadow>
+        <sphereGeometry args={[0.5, 18, 10]} />
+        <primitive object={material.clone()} attach="material" />
+      </mesh>
+      <mesh position={[0.76, 0.66, -0.38]} scale={[0.18, 0.055, 0.82]} rotation={[-0.02, 0.01, -0.06]} castShadow receiveShadow>
+        <sphereGeometry args={[0.5, 18, 10]} />
+        <primitive object={material.clone()} attach="material" />
+      </mesh>
+    </group>
+  );
+}
+
+function DeskChair() {
+  const wood = useRoughMaterial("#171210", "#060403", 0.9, "wood");
+  const fabric = useRoughMaterial("#191d1b", "#070908", 0.96, "fabric");
+
+  return (
+    <group position={[-2.25, 0, -1.35]} rotation={[0, 0.28, 0]}>
+      <mesh position={[0, 0.46, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.74, 0.1, 0.68]} />
+        <primitive object={fabric} attach="material" />
+      </mesh>
+      <mesh position={[0.03, 1.02, 0.28]} rotation={[MathUtils.degToRad(-7), 0, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.78, 0.9, 0.1]} />
+        <primitive object={wood} attach="material" />
+      </mesh>
+      {[
+        [-0.27, 0.23, -0.23],
+        [0.27, 0.23, -0.23],
+        [-0.27, 0.23, 0.23],
+        [0.27, 0.23, 0.23],
+      ].map(([x, y, z]) => (
+        <mesh key={`${x}-${z}`} position={[x, y, z]} castShadow>
+          <boxGeometry args={[0.07, 0.46, 0.07]} />
+          <primitive object={wood.clone()} attach="material" />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -413,7 +504,7 @@ function ScareDetails() {
 }
 
 function Window() {
-  const frame = useRoughMaterial("#0f1111", "#020202", 0.8);
+  const frame = useRoughMaterial("#0f1111", "#020202", 0.86, "wood");
   const glass = useMemo(
     () =>
       new MeshStandardMaterial({
@@ -446,19 +537,44 @@ function Window() {
         <planeGeometry args={[0.025, 1.02]} />
         <meshBasicMaterial color="#0b0d0d" />
       </mesh>
+      <mesh position={[0, -0.63, 0.12]} castShadow receiveShadow>
+        <boxGeometry args={[1.42, 0.08, 0.18]} />
+        <primitive object={frame.clone()} attach="material" />
+      </mesh>
     </group>
   );
 }
 
 function Door() {
-  const door = useRoughMaterial("#1a1512", "#070504", 0.88);
+  const door = useRoughMaterial("#1a1512", "#070504", 0.9, "wood");
   const metal = useRoughMaterial("#151717", "#040404", 0.62);
+  const trim = useRoughMaterial("#120f0d", "#050403", 0.85, "wood");
 
   return (
     <group position={[-3.41, 1.04, -1.4]} rotation={[0, Math.PI / 2, 0]}>
       <mesh castShadow receiveShadow>
         <boxGeometry args={[1.1, 2.08, 0.08]} />
         <primitive object={door} attach="material" />
+      </mesh>
+      <mesh position={[0, 0.6, 0.055]} castShadow receiveShadow>
+        <boxGeometry args={[0.82, 0.68, 0.035]} />
+        <primitive object={door.clone()} attach="material" />
+      </mesh>
+      <mesh position={[0, -0.42, 0.055]} castShadow receiveShadow>
+        <boxGeometry args={[0.82, 0.74, 0.035]} />
+        <primitive object={door.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-0.61, 0, 0.06]} castShadow receiveShadow>
+        <boxGeometry args={[0.06, 2.24, 0.08]} />
+        <primitive object={trim} attach="material" />
+      </mesh>
+      <mesh position={[0.61, 0, 0.06]} castShadow receiveShadow>
+        <boxGeometry args={[0.06, 2.24, 0.08]} />
+        <primitive object={trim.clone()} attach="material" />
+      </mesh>
+      <mesh position={[0, 1.14, 0.06]} castShadow receiveShadow>
+        <boxGeometry args={[1.26, 0.06, 0.08]} />
+        <primitive object={trim.clone()} attach="material" />
       </mesh>
       <mesh position={[0.36, 0.02, 0.07]} castShadow>
         <sphereGeometry args={[0.045, 12, 8]} />
@@ -486,9 +602,9 @@ function CeilingLight() {
 }
 
 function BookStack({ position, rotation = 0 }: { position: [number, number, number]; rotation?: number }) {
-  const bookA = useRoughMaterial("#312821", "#0d0908", 0.9);
-  const bookB = useRoughMaterial("#1d2826", "#090d0d", 0.9);
-  const bookC = useRoughMaterial("#2b1b1a", "#0b0505", 0.9);
+  const bookA = useRoughMaterial("#312821", "#0d0908", 0.92, "paper");
+  const bookB = useRoughMaterial("#1d2826", "#090d0d", 0.92, "paper");
+  const bookC = useRoughMaterial("#2b1b1a", "#0b0505", 0.92, "paper");
 
   return (
     <group position={position} rotation={[0, rotation, 0]}>
@@ -508,56 +624,19 @@ function BookStack({ position, rotation = 0 }: { position: [number, number, numb
   );
 }
 
-function DustMotes() {
-  const points = useMemo(() => {
-    const geometry = new BufferGeometry();
-    const positions: number[] = [];
+type TextureStyle = "concrete" | "fabric" | "paint" | "paper" | "wood" | "none";
 
-    for (let index = 0; index < 210; index += 1) {
-      positions.push(
-        MathUtils.randFloatSpread(6.2),
-        MathUtils.randFloat(0.75, 3.4),
-        MathUtils.randFloat(-3.6, 2.2),
-      );
-    }
-
-    geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-    return geometry;
-  }, []);
-
-  const material = useMemo(
-    () => (
-      <pointsMaterial
-        size={0.016}
-        color="#b5ad93"
-        transparent
-        opacity={0.19}
-        depthWrite={false}
-        blending={AdditiveBlending}
-      />
-    ),
-    [],
-  );
-
-  const ref = useRef<Group>(null);
-
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    ref.current.rotation.y = Math.sin(clock.elapsedTime * 0.08) * 0.02;
-    ref.current.position.y = Math.sin(clock.elapsedTime * 0.22) * 0.035;
-  });
-
-  return (
-    <group ref={ref}>
-      <points geometry={points}>{material}</points>
-    </group>
-  );
-}
-
-function useRoughMaterial(color: string, emissive = "#000000", roughness = 0.95) {
+function useRoughMaterial(
+  color: string,
+  emissive = "#000000",
+  roughness = 0.95,
+  textureStyle: TextureStyle = "concrete",
+) {
   return useMemo(() => {
+    const texture = textureStyle === "none" ? null : createSurfaceTexture(color, textureStyle);
     const material = new MeshStandardMaterial({
-      color,
+      color: texture ? "#ffffff" : color,
+      map: texture ?? undefined,
       roughness,
       metalness: 0.01,
       emissive,
@@ -569,7 +648,7 @@ function useRoughMaterial(color: string, emissive = "#000000", roughness = 0.95)
         "#include <begin_vertex>",
         `
           #include <begin_vertex>
-          float warp = sin(position.x * 9.0 + position.y * 3.0) * 0.015;
+          float warp = sin(position.x * 9.0 + position.y * 3.0) * 0.006;
           transformed += normal * warp;
         `,
       );
@@ -579,13 +658,88 @@ function useRoughMaterial(color: string, emissive = "#000000", roughness = 0.95)
         `
           #include <color_fragment>
           float dirt = fract(sin(dot(vViewPosition.xy, vec2(12.9898,78.233))) * 43758.5453);
-          diffuseColor.rgb *= 0.78 + dirt * 0.18;
+          diffuseColor.rgb *= 0.86 + dirt * 0.09;
         `,
       );
     };
 
     return material;
-  }, [color, emissive, roughness]);
+  }, [color, emissive, roughness, textureStyle]);
+}
+
+function createSurfaceTexture(baseColor: string, style: TextureStyle) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const context = canvas.getContext("2d");
+
+  if (!context) return null;
+
+  context.fillStyle = baseColor;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const lightOpacity = style === "fabric" ? 0.012 : 0.018;
+  const darkOpacity = style === "wood" ? 0.08 : 0.035;
+  const markCount = style === "wood" ? 80 : style === "fabric" ? 120 : 170;
+
+  for (let index = 0; index < markCount; index += 1) {
+    const value = Math.random() > 0.52 ? 255 : 0;
+    const opacity = value === 255 ? lightOpacity : darkOpacity;
+    context.fillStyle = `rgba(${value}, ${value}, ${value}, ${opacity})`;
+    context.fillRect(
+      Math.random() * 256,
+      Math.random() * 256,
+      Math.random() * 24 + 6,
+      Math.random() * 18 + 5,
+    );
+  }
+
+  if (style === "wood") {
+    for (let y = 0; y < 256; y += 12) {
+      context.strokeStyle = "rgba(0, 0, 0, 0.16)";
+      context.beginPath();
+      context.moveTo(0, y + Math.sin(y) * 2);
+      context.bezierCurveTo(64, y + 4, 160, y - 6, 256, y + 2);
+      context.stroke();
+    }
+  }
+
+  if (style === "fabric") {
+    context.strokeStyle = "rgba(255, 255, 255, 0.035)";
+    for (let x = 0; x < 256; x += 8) {
+      context.beginPath();
+      context.moveTo(x, 0);
+      context.lineTo(x + 20, 256);
+      context.stroke();
+    }
+    context.strokeStyle = "rgba(0, 0, 0, 0.06)";
+    for (let y = 0; y < 256; y += 9) {
+      context.beginPath();
+      context.moveTo(0, y);
+      context.lineTo(256, y + 8);
+      context.stroke();
+    }
+  }
+
+  if (style === "paint" || style === "concrete") {
+    context.strokeStyle = "rgba(255, 255, 255, 0.025)";
+    for (let line = 0; line < 16; line += 1) {
+      const y = Math.random() * 256;
+      context.beginPath();
+      context.moveTo(0, y);
+      context.lineTo(256, y + Math.random() * 18 - 9);
+      context.stroke();
+    }
+  }
+
+  const texture = new CanvasTexture(canvas);
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.repeat.set(style === "wood" ? 2 : 3, style === "fabric" ? 4 : 3);
+  texture.colorSpace = SRGBColorSpace;
+  texture.needsUpdate = true;
+
+  return texture;
 }
 
 function clampGaze(
