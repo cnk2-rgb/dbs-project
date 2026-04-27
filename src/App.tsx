@@ -6,6 +6,7 @@ import type { MutableRefObject } from "react";
 import {
   CanvasTexture,
   Color,
+  Group,
   MathUtils,
   Mesh,
   MeshStandardMaterial,
@@ -21,6 +22,7 @@ const minPitch = MathUtils.degToRad(-42);
 const maxPitch = MathUtils.degToRad(20);
 const fixedHeadPosition = new Vector3(-0.72, 1.14, 3.12);
 const phoneModelPath = "/models/phone-quaternius-public-domain.glb";
+const worldUp = new Vector3(0, 1, 0);
 
 type DragState = {
   active: boolean;
@@ -32,6 +34,24 @@ function App() {
   const [isAwake, setIsAwake] = useState(false);
   const [phoneSelected, setPhoneSelected] = useState(false);
   const [phoneOn, setPhoneOn] = useState(false);
+  const [doorOpen, setDoorOpen] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  useEffect(() => {
+    const onFirstInteraction = () => {
+      if (isAwake) {
+        setHasInteracted(true);
+      }
+    };
+
+    window.addEventListener("pointerdown", onFirstInteraction);
+    window.addEventListener("touchstart", onFirstInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", onFirstInteraction);
+      window.removeEventListener("touchstart", onFirstInteraction);
+    };
+  }, [isAwake]);
 
   return (
     <main className="app-shell">
@@ -60,8 +80,10 @@ function App() {
             isAwake={isAwake}
             phoneOn={phoneOn}
             phoneSelected={phoneSelected}
+            doorOpen={doorOpen}
             onSelectPhone={() => setPhoneSelected(true)}
             onTurnOnPhone={() => setPhoneOn(true)}
+            onToggleDoor={() => setDoorOpen((value) => !value)}
           />
         </Canvas>
       </div>
@@ -76,13 +98,13 @@ function App() {
         </div>
       )}
 
-      {isAwake && (
+      {isAwake && (phoneOn || !hasInteracted) && (
         <div className="look-hint" aria-hidden="true">
           {phoneOn
-            ? "Click and drag to look around"
+            ? "WASD to move. Double-click objects to interact"
             : phoneSelected
-              ? "Click the phone again to turn it on"
-              : "Click and drag to look around. Click the phone to interact"}
+              ? "Hover on the phone to turn it on"
+              : "Click and drag to look around"}
         </div>
       )}
     </main>
@@ -93,20 +115,24 @@ function BedroomScene({
   isAwake,
   phoneOn,
   phoneSelected,
+  doorOpen,
   onSelectPhone,
   onTurnOnPhone,
+  onToggleDoor,
 }: {
   isAwake: boolean;
   phoneOn: boolean;
   phoneSelected: boolean;
+  doorOpen: boolean;
   onSelectPhone: () => void;
   onTurnOnPhone: () => void;
+  onToggleDoor: () => void;
 }) {
   return (
     <>
       <color attach="background" args={["#0b0f0f"]} />
       <fog attach="fog" args={["#0b0f0f", 6.5, 19]} />
-      <LookOnlyCamera enabled={isAwake} />
+      <LookOnlyCamera enabled={isAwake} canMove={phoneOn} />
       <hemisphereLight intensity={0.46} color="#9fb4ba" groundColor="#1d1612" />
       <ambientLight intensity={0.3} color="#879ba5" />
       <directionalLight
@@ -121,7 +147,8 @@ function BedroomScene({
       <pointLight position={[2.3, 2.2, -1.7]} intensity={1.05} color="#bad6df" distance={8} decay={2} />
       <pointLight position={[0, 1.2, 2.05]} intensity={1.15} color="#7f9495" distance={3.5} decay={2.3} />
 
-      <RoomShell />
+      <RoomShell doorOpen={doorOpen} onToggleDoor={onToggleDoor} />
+      <HallwayWing />
       <Bed />
       <Furniture
         phoneOn={phoneOn}
@@ -138,15 +165,19 @@ function BedroomScene({
   );
 }
 
-function LookOnlyCamera({ enabled }: { enabled: boolean }) {
+function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boolean }) {
   const { camera, gl } = useThree();
   const yaw = useRef(0);
   const pitch = useRef(MathUtils.degToRad(-14));
   const targetYaw = useRef(0);
   const targetPitch = useRef(MathUtils.degToRad(-14));
   const drag = useRef<DragState>({ active: false, x: 0, y: 0 });
+  const position = useRef(fixedHeadPosition.clone());
+  const movement = useRef({ forward: false, backward: false, left: false, right: false });
+  const forwardDirection = useRef(new Vector3());
+  const rightDirection = useRef(new Vector3());
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!enabled) {
       targetYaw.current += (Math.sin(performance.now() * 0.00025) * 0.055 - targetYaw.current) * 0.012;
       targetPitch.current += (MathUtils.degToRad(-14) - targetPitch.current) * 0.02;
@@ -154,11 +185,48 @@ function LookOnlyCamera({ enabled }: { enabled: boolean }) {
 
     yaw.current = MathUtils.lerp(yaw.current, targetYaw.current, 0.1);
     pitch.current = MathUtils.lerp(pitch.current, targetPitch.current, 0.1);
-    camera.position.copy(fixedHeadPosition);
     camera.rotation.order = "YXZ";
     camera.rotation.y = yaw.current;
     camera.rotation.x = pitch.current;
     camera.rotation.z = Math.sin(performance.now() * 0.00042) * 0.006;
+
+    if (!enabled || !canMove) {
+      movement.current = { forward: false, backward: false, left: false, right: false };
+      position.current.copy(fixedHeadPosition);
+    } else {
+      const movementVector = new Vector3();
+      const movementSpeed = 1.55;
+
+      camera.getWorldDirection(forwardDirection.current);
+      forwardDirection.current.y = 0;
+      if (forwardDirection.current.lengthSq() > 0.00001) {
+        forwardDirection.current.normalize();
+      } else {
+        forwardDirection.current.set(Math.sin(yaw.current), 0, -Math.cos(yaw.current));
+      }
+      rightDirection.current.crossVectors(forwardDirection.current, worldUp).normalize();
+
+      if (movement.current.forward) {
+        movementVector.add(forwardDirection.current);
+      }
+      if (movement.current.backward) {
+        movementVector.sub(forwardDirection.current);
+      }
+      if (movement.current.right) {
+        movementVector.add(rightDirection.current);
+      }
+      if (movement.current.left) {
+        movementVector.sub(rightDirection.current);
+      }
+
+      if (movementVector.lengthSq() > 0) {
+        movementVector.normalize().multiplyScalar(movementSpeed * delta);
+        position.current.add(movementVector);
+        constrainPlayerPosition(position.current);
+      }
+    }
+
+    camera.position.copy(position.current);
   });
 
   useEffect(() => {
@@ -202,11 +270,28 @@ function LookOnlyCamera({ enabled }: { enabled: boolean }) {
       drag.current.active = false;
     };
 
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!enabled || !canMove) return;
+      if (event.code === "KeyW" || event.code === "ArrowUp") movement.current.forward = true;
+      if (event.code === "KeyS" || event.code === "ArrowDown") movement.current.backward = true;
+      if (event.code === "KeyA" || event.code === "ArrowLeft") movement.current.left = true;
+      if (event.code === "KeyD" || event.code === "ArrowRight") movement.current.right = true;
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code === "KeyW" || event.code === "ArrowUp") movement.current.forward = false;
+      if (event.code === "KeyS" || event.code === "ArrowDown") movement.current.backward = false;
+      if (event.code === "KeyA" || event.code === "ArrowLeft") movement.current.left = false;
+      if (event.code === "KeyD" || event.code === "ArrowRight") movement.current.right = false;
+    };
+
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("touchmove", onTouchMove, { passive: true });
     window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
 
     return () => {
       canvas.removeEventListener("pointermove", onPointerMove);
@@ -214,13 +299,15 @@ function LookOnlyCamera({ enabled }: { enabled: boolean }) {
       window.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
     };
-  }, [enabled, gl.domElement]);
+  }, [enabled, canMove, gl.domElement]);
 
   return null;
 }
 
-function RoomShell() {
+function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor: () => void }) {
   const floorMaterial = useRoughMaterial("#252626", "#161716", 0.82, "concrete");
   const wallMaterial = useRoughMaterial("#202221", "#111514", 0.76, "paint");
   const ceilingMaterial = useRoughMaterial("#181a19", "#0b0d0c", 0.68, "paint");
@@ -238,8 +325,18 @@ function RoomShell() {
         <primitive object={wallMaterial} attach="material" />
       </mesh>
 
-      <mesh position={[-3.5, 2.25, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <boxGeometry args={[8, 4.5, 0.18, 16, 10, 1]} />
+      <mesh position={[-3.5, 2.25, -3]} receiveShadow>
+        <boxGeometry args={[0.18, 4.5, 2.0, 1, 10, 8]} />
+        <primitive object={wallMaterial.clone()} attach="material" />
+      </mesh>
+
+      <mesh position={[-3.5, 2.25, 1.6]} receiveShadow>
+        <boxGeometry args={[0.18, 4.5, 4.8, 1, 10, 8]} />
+        <primitive object={wallMaterial.clone()} attach="material" />
+      </mesh>
+
+      <mesh position={[-3.5, 3.35, -1.4]} receiveShadow>
+        <boxGeometry args={[0.18, 2.3, 1.2, 1, 6, 4]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
 
@@ -261,8 +358,98 @@ function RoomShell() {
       <FloorSeams />
       <Baseboards />
       <Window />
-      <Door />
+      <Door open={doorOpen} onToggle={onToggleDoor} />
       <CeilingLight />
+    </group>
+  );
+}
+
+function HallwayWing() {
+  const hallwaySurface = useRoughMaterial("#1c2429", "#0a0f13", 0.84, "concrete");
+  const hallwayWall = useRoughMaterial("#202b31", "#0b1116", 0.76, "paint");
+  const hallwayCeiling = useRoughMaterial("#1a2329", "#090e12", 0.74, "paint");
+
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6.75, 0.01, -1.4]} receiveShadow>
+        <planeGeometry args={[6.5, 2.4, 12, 4]} />
+        <primitive object={hallwaySurface} attach="material" />
+      </mesh>
+
+      <mesh position={[-5.525, 2.1, -2.6]} receiveShadow>
+        <boxGeometry args={[4.05, 4.2, 0.14]} />
+        <primitive object={hallwayWall} attach="material" />
+      </mesh>
+      <mesh position={[-9.575, 2.1, -2.6]} receiveShadow>
+        <boxGeometry args={[0.85, 4.2, 0.14]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+
+      <mesh position={[-8.95, 2.1, -0.2]} receiveShadow>
+        <boxGeometry args={[2.1, 4.2, 0.14]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-4.9, 2.1, -0.2]} receiveShadow>
+        <boxGeometry args={[2.8, 4.2, 0.14]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+
+      <mesh position={[-9.98, 2.1, -1.4]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 2.4]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-6.75, 4.2, -1.4]} receiveShadow>
+        <planeGeometry args={[6.5, 2.4, 6, 2]} />
+        <primitive object={hallwayCeiling} attach="material" />
+      </mesh>
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-8.35, 0.01, -4.1]} receiveShadow>
+        <planeGeometry args={[3.3, 3.0, 8, 8]} />
+        <primitive object={hallwaySurface.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-8.35, 2.1, -5.6]} receiveShadow>
+        <boxGeometry args={[3.3, 4.2, 0.14]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-9.98, 2.1, -4.1]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 3.0]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-6.72, 2.1, -4.1]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 3.0]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-8.35, 4.2, -4.1]} receiveShadow>
+        <planeGeometry args={[3.3, 3.0, 4, 4]} />
+        <primitive object={hallwayCeiling.clone()} attach="material" />
+      </mesh>
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-8.35, 0.01, 1.3]} receiveShadow>
+        <planeGeometry args={[3.3, 3.0, 8, 8]} />
+        <primitive object={hallwaySurface.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-8.35, 2.1, 2.8]} receiveShadow>
+        <boxGeometry args={[3.3, 4.2, 0.14]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-9.98, 2.1, 1.3]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 3.0]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-6.72, 2.1, 1.3]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 3.0]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-8.35, 4.2, 1.3]} receiveShadow>
+        <planeGeometry args={[3.3, 3.0, 4, 4]} />
+        <primitive object={hallwayCeiling.clone()} attach="material" />
+      </mesh>
+
+      <pointLight position={[-6.5, 2.35, -1.35]} intensity={0.88} color="#86adc0" distance={8.6} decay={2} />
+      <pointLight position={[-8.45, 2.1, -4.05]} intensity={0.56} color="#78a0bb" distance={5.5} decay={2} />
+      <pointLight position={[-8.45, 2.1, 1.35]} intensity={0.56} color="#78a0bb" distance={5.5} decay={2} />
+      <pointLight position={[-7.2, 2.05, -1.35]} intensity={0.46} color="#6b90a7" distance={6.8} decay={2} />
     </group>
   );
 }
@@ -443,6 +630,21 @@ function SmallPhone({
 }) {
   const { scene } = useGLTF(phoneModelPath);
   const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (!hovered || poweredOn) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      onTurnOn();
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [hovered, poweredOn, onTurnOn]);
+
   const lockscreenTexture = useMemo(() => createLockscreenTexture(), []);
   const screenOffMaterial = useMemo(
     () =>
@@ -515,35 +717,19 @@ function SmallPhone({
         event.stopPropagation();
         if (!selected) {
           onSelect();
-          return;
-        }
-        if (!poweredOn) {
-          onTurnOn();
         }
       }}
     >
       <primitive object={phone} />
-      <mesh position={[0, 0, 0.062]}>
+      <mesh position={[0, 0, 0.062]} rotation={[0, 0, poweredOn ? Math.PI : 0]}>
         <planeGeometry args={[0.36, 0.69]} />
         <primitive object={poweredOn ? screenOnMaterial : screenOffMaterial} attach="material" />
       </mesh>
-      {selected && !poweredOn && (
-        <mesh position={[0, 0, 0.058]}>
-          <planeGeometry args={[0.38, 0.71]} />
-          <meshBasicMaterial color="#89c9db" transparent opacity={0.22} />
-        </mesh>
-      )}
-      {hovered && !poweredOn && (
-        <mesh position={[0, 0, 0.056]}>
-          <planeGeometry args={[0.42, 0.75]} />
-          <meshBasicMaterial color="#7ec0dc" transparent opacity={0.16} />
-        </mesh>
-      )}
       <pointLight
         position={[0, 0.03, 0.03]}
-        intensity={poweredOn ? 0.2 : hovered ? 0.14 : 0.05}
+        intensity={poweredOn ? 0.24 : hovered || selected ? 0.2 : 0.06}
         color={poweredOn ? "#6db7d9" : "#4fb5c6"}
-        distance={0.45}
+        distance={0.52}
         decay={2}
       />
     </group>
@@ -637,25 +823,20 @@ function Window() {
   );
 }
 
-function Door() {
+function Door({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const door = useRoughMaterial("#1a1512", "#070504", 0.9, "wood");
   const metal = useRoughMaterial("#151717", "#040404", 0.62);
   const trim = useRoughMaterial("#120f0d", "#050403", 0.85, "wood");
+  const leafRef = useRef<Group>(null);
+
+  useFrame(() => {
+    if (!leafRef.current) return;
+    const target = open ? -MathUtils.degToRad(86) : 0;
+    leafRef.current.rotation.y = MathUtils.lerp(leafRef.current.rotation.y, target, 0.12);
+  });
 
   return (
     <group position={[-3.41, 1.04, -1.4]} rotation={[0, Math.PI / 2, 0]}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[1.1, 2.08, 0.08]} />
-        <primitive object={door} attach="material" />
-      </mesh>
-      <mesh position={[0, 0.6, 0.055]} castShadow receiveShadow>
-        <boxGeometry args={[0.82, 0.68, 0.035]} />
-        <primitive object={door.clone()} attach="material" />
-      </mesh>
-      <mesh position={[0, -0.42, 0.055]} castShadow receiveShadow>
-        <boxGeometry args={[0.82, 0.74, 0.035]} />
-        <primitive object={door.clone()} attach="material" />
-      </mesh>
       <mesh position={[-0.61, 0, 0.06]} castShadow receiveShadow>
         <boxGeometry args={[0.06, 2.24, 0.08]} />
         <primitive object={trim} attach="material" />
@@ -668,10 +849,32 @@ function Door() {
         <boxGeometry args={[1.26, 0.06, 0.08]} />
         <primitive object={trim.clone()} attach="material" />
       </mesh>
-      <mesh position={[0.36, 0.02, 0.07]} castShadow>
-        <sphereGeometry args={[0.045, 12, 8]} />
-        <primitive object={metal} attach="material" />
-      </mesh>
+
+      <group
+        ref={leafRef}
+        position={[-0.55, 0, 0]}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          onToggle();
+        }}
+      >
+        <mesh position={[0.55, 0, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.1, 2.08, 0.08]} />
+          <primitive object={door} attach="material" />
+        </mesh>
+        <mesh position={[0.55, 0.6, 0.055]} castShadow receiveShadow>
+          <boxGeometry args={[0.82, 0.68, 0.035]} />
+          <primitive object={door.clone()} attach="material" />
+        </mesh>
+        <mesh position={[0.55, -0.42, 0.055]} castShadow receiveShadow>
+          <boxGeometry args={[0.82, 0.74, 0.035]} />
+          <primitive object={door.clone()} attach="material" />
+        </mesh>
+        <mesh position={[0.91, 0.02, 0.07]} castShadow>
+          <sphereGeometry args={[0.045, 12, 8]} />
+          <primitive object={metal} attach="material" />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -854,39 +1057,41 @@ function createLockscreenTexture() {
   context.fillStyle = "rgba(232, 236, 236, 0.95)";
   context.font = "600 74px Inter, system-ui, sans-serif";
   context.textAlign = "center";
-  context.fillText("2:47", canvas.width / 2, 118);
+  const lockscreenYOffset = 150;
+
+  context.fillText("2:47", canvas.width / 2, 118 + lockscreenYOffset);
 
   context.fillStyle = "rgba(221, 227, 229, 0.92)";
   context.font = "500 26px Inter, system-ui, sans-serif";
-  context.fillText("Monday", canvas.width / 2, 160);
+  context.fillText("Monday", canvas.width / 2, 160 + lockscreenYOffset);
 
   context.fillStyle = "rgba(8, 14, 18, 0.34)";
-  context.fillRect(44, 220, canvas.width - 88, 660);
+  context.fillRect(44, 220 + lockscreenYOffset, canvas.width - 88, 660);
 
   context.fillStyle = "#2f3f48";
-  context.fillRect(66, 242, canvas.width - 132, 616);
+  context.fillRect(66, 242 + lockscreenYOffset, canvas.width - 132, 616);
 
   context.fillStyle = "#223037";
   context.beginPath();
-  context.arc(canvas.width / 2, 455, 136, 0, Math.PI * 2);
+  context.arc(canvas.width / 2, 455 + lockscreenYOffset, 136, 0, Math.PI * 2);
   context.fill();
 
   context.fillStyle = "#d6c3ae";
   context.beginPath();
-  context.arc(canvas.width / 2, 410, 82, 0, Math.PI * 2);
+  context.arc(canvas.width / 2, 410 + lockscreenYOffset, 82, 0, Math.PI * 2);
   context.fill();
 
   context.fillStyle = "#241916";
   context.beginPath();
-  context.arc(canvas.width / 2, 394, 88, Math.PI * 0.94, Math.PI * 2.05);
+  context.arc(canvas.width / 2, 394 + lockscreenYOffset, 88, Math.PI * 0.94, Math.PI * 2.05);
   context.fill();
 
   context.fillStyle = "#10161a";
   context.beginPath();
-  context.moveTo(canvas.width / 2 - 126, 600);
-  context.lineTo(canvas.width / 2 + 126, 600);
-  context.lineTo(canvas.width / 2 + 188, 820);
-  context.lineTo(canvas.width / 2 - 188, 820);
+  context.moveTo(canvas.width / 2 - 126, 600 + lockscreenYOffset);
+  context.lineTo(canvas.width / 2 + 126, 600 + lockscreenYOffset);
+  context.lineTo(canvas.width / 2 + 188, 820 + lockscreenYOffset);
+  context.lineTo(canvas.width / 2 - 188, 820 + lockscreenYOffset);
   context.closePath();
   context.fill();
 
@@ -902,6 +1107,26 @@ function clampGaze(
 ) {
   yaw.current = MathUtils.clamp(yaw.current, -horizontalGazeLimit, horizontalGazeLimit);
   pitch.current = MathUtils.clamp(pitch.current, minPitch, maxPitch);
+}
+
+function constrainPlayerPosition(position: Vector3) {
+  position.x = MathUtils.clamp(position.x, -9.6, 3.2);
+  position.z = MathUtils.clamp(position.z, -5.7, 3.7);
+
+  const inBedroom = position.x >= -3.2;
+  const inHallTransition = position.x < -3.2 && position.x > -6.2;
+
+  if (inBedroom) {
+    position.z = MathUtils.clamp(position.z, -3.7, 3.6);
+    return;
+  }
+
+  if (inHallTransition) {
+    position.z = MathUtils.clamp(position.z, -2.55, -0.25);
+    return;
+  }
+
+  position.z = MathUtils.clamp(position.z, -5.55, 2.75);
 }
 
 export default App;
