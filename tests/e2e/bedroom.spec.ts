@@ -7,8 +7,8 @@ test("renders the fixed bedroom scene", async ({ page }) => {
   await expect(page.getByTestId("bedroom-canvas")).toBeVisible();
   await expect(page.getByRole("button", { name: "Open your eyes" })).toBeVisible();
   await page.getByRole("button", { name: "Open your eyes" }).click();
-  await expect(page.getByText("Move the mouse to look around")).toBeVisible();
-  await page.waitForTimeout(1000);
+  await expect(page.getByText("Click and drag to look around")).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(600);
 
   const nonBlankPixels = await page.evaluate(async () => {
     const source = document.querySelector("canvas");

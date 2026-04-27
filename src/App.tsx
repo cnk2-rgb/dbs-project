@@ -32,8 +32,11 @@ type DragState = {
   y: number;
 };
 
+type IntroPhase = "asleep" | "flicker" | "pan" | "active";
+
 function App() {
   const [isAwake, setIsAwake] = useState(false);
+  const [introPhase, setIntroPhase] = useState<IntroPhase>("asleep");
   const [phoneSelected, setPhoneSelected] = useState(false);
   const [phoneOn, setPhoneOn] = useState(false);
   const [phoneUnlocked, setPhoneUnlocked] = useState(false);
@@ -56,6 +59,29 @@ function App() {
       window.removeEventListener("touchstart", onFirstInteraction);
     };
   }, [isAwake]);
+
+  useEffect(() => {
+    if (introPhase === "flicker") {
+      const flickerTimer = window.setTimeout(() => {
+        setIntroPhase("pan");
+      }, 1800);
+      return () => {
+        window.clearTimeout(flickerTimer);
+      };
+    }
+
+    if (introPhase === "pan") {
+      const panTimer = window.setTimeout(() => {
+        setIntroPhase("active");
+      }, 2400);
+      return () => {
+        window.clearTimeout(panTimer);
+      };
+    }
+  }, [introPhase]);
+
+  const introActive = introPhase !== "active";
+  const controlsLocked = phoneFocusMode || introActive;
 
   return (
     <main className="app-shell">
@@ -82,6 +108,7 @@ function App() {
         >
           <BedroomScene
             isAwake={isAwake}
+            introPhase={introPhase}
             phoneOn={phoneOn}
             phoneUnlocked={phoneUnlocked}
             phoneSelected={phoneSelected}
@@ -98,24 +125,36 @@ function App() {
               setPhoneFocusMode(true);
             }}
             onToggleDoor={() => setDoorOpen((value) => !value)}
-            inputLocked={phoneFocusMode}
+            inputLocked={controlsLocked}
           />
         </Canvas>
       </div>
 
       <div className="sleep-vignette" />
 
+      {introPhase === "flicker" && <div className="intro-blackout intro-blackout-flicker" />}
+      {introPhase === "pan" && <div className="intro-blackout intro-blackout-pan" />}
+
       {!isAwake && (
         <div className="start-overlay">
-          <button className="wake-button" type="button" onClick={() => setIsAwake(true)}>
+          <button
+            className="wake-button"
+            type="button"
+            onClick={() => {
+              setIsAwake(true);
+              setIntroPhase("flicker");
+            }}
+          >
             Open your eyes
           </button>
         </div>
       )}
 
-      {isAwake && phoneUnlocked && (
+      {isAwake && introPhase === "active" && !phoneFocusMode && (
         <div className="look-hint" aria-hidden="true">
-          WASD/Arrow keys to move. Double-click objects to interact
+          {phoneUnlocked
+            ? "WASD/Arrow keys to move. Double-click objects to interact"
+            : "Click and drag to look around"}
         </div>
       )}
 
@@ -133,6 +172,7 @@ function App() {
 
 function BedroomScene({
   isAwake,
+  introPhase,
   phoneOn,
   phoneUnlocked,
   phoneSelected,
@@ -143,6 +183,7 @@ function BedroomScene({
   inputLocked,
 }: {
   isAwake: boolean;
+  introPhase: IntroPhase;
   phoneOn: boolean;
   phoneUnlocked: boolean;
   phoneSelected: boolean;
@@ -156,7 +197,7 @@ function BedroomScene({
     <>
       <color attach="background" args={["#0b0f0f"]} />
       <fog attach="fog" args={["#0b0f0f", 6.5, 19]} />
-      <LookOnlyCamera enabled={isAwake} canMove={phoneUnlocked} inputLocked={inputLocked} />
+      <LookOnlyCamera enabled={isAwake} canMove={phoneUnlocked} inputLocked={inputLocked} introPhase={introPhase} />
       <hemisphereLight intensity={0.46} color="#9fb4ba" groundColor="#1d1612" />
       <ambientLight intensity={0.3} color="#879ba5" />
       <directionalLight
@@ -189,7 +230,17 @@ function BedroomScene({
   );
 }
 
-function LookOnlyCamera({ enabled, canMove, inputLocked }: { enabled: boolean; canMove: boolean; inputLocked: boolean }) {
+function LookOnlyCamera({
+  enabled,
+  canMove,
+  inputLocked,
+  introPhase,
+}: {
+  enabled: boolean;
+  canMove: boolean;
+  inputLocked: boolean;
+  introPhase: IntroPhase;
+}) {
   const { camera, gl } = useThree();
   const yaw = useRef(0);
   const pitch = useRef(MathUtils.degToRad(-14));
@@ -202,6 +253,14 @@ function LookOnlyCamera({ enabled, canMove, inputLocked }: { enabled: boolean; c
   const rightDirection = useRef(new Vector3());
 
   useFrame((_, delta) => {
+    if (introPhase === "flicker") {
+      targetYaw.current = 0;
+      targetPitch.current = maxPitch;
+    } else if (introPhase === "pan") {
+      targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.03);
+      targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.03);
+    }
+
     if (!enabled) {
       targetYaw.current += (Math.sin(performance.now() * 0.00025) * 0.055 - targetYaw.current) * 0.012;
       targetPitch.current += (MathUtils.degToRad(-14) - targetPitch.current) * 0.02;
@@ -216,9 +275,15 @@ function LookOnlyCamera({ enabled, canMove, inputLocked }: { enabled: boolean; c
 
     if (!enabled || inputLocked) {
       movement.current = { forward: false, backward: false, left: false, right: false };
-      position.current.lerp(fixedHeadPosition, 0.12);
-      targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.1);
-      targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.1);
+      if (introPhase === "flicker") {
+        position.current.copy(fixedHeadPosition);
+      } else {
+        position.current.lerp(fixedHeadPosition, 0.05);
+      }
+      if (introPhase !== "flicker" && introPhase !== "pan") {
+        targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.1);
+        targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.1);
+      }
     } else if (!canMove) {
       movement.current = { forward: false, backward: false, left: false, right: false };
       position.current.copy(fixedHeadPosition);
@@ -338,7 +403,7 @@ function LookOnlyCamera({ enabled, canMove, inputLocked }: { enabled: boolean; c
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [enabled, canMove, inputLocked, gl.domElement]);
+  }, [enabled, canMove, inputLocked, introPhase, gl.domElement]);
 
   return null;
 }
