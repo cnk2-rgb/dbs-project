@@ -17,12 +17,14 @@ import {
 
 const pointerSensitivity = 0.002;
 const touchSensitivity = 0.004;
-const horizontalGazeLimit = MathUtils.degToRad(115);
+const horizontalGazeLimit = MathUtils.degToRad(180);
 const minPitch = MathUtils.degToRad(-42);
 const maxPitch = MathUtils.degToRad(20);
 const fixedHeadPosition = new Vector3(-0.72, 1.14, 3.12);
 const phoneModelPath = "/models/phone-quaternius-public-domain.glb";
 const worldUp = new Vector3(0, 1, 0);
+const standingEyeHeight = 1.64;
+const bedExitDistance = 0.48;
 
 type DragState = {
   active: boolean;
@@ -34,6 +36,8 @@ function App() {
   const [isAwake, setIsAwake] = useState(false);
   const [phoneSelected, setPhoneSelected] = useState(false);
   const [phoneOn, setPhoneOn] = useState(false);
+  const [phoneUnlocked, setPhoneUnlocked] = useState(false);
+  const [phoneFocusMode, setPhoneFocusMode] = useState(false);
   const [doorOpen, setDoorOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -79,11 +83,22 @@ function App() {
           <BedroomScene
             isAwake={isAwake}
             phoneOn={phoneOn}
+            phoneUnlocked={phoneUnlocked}
             phoneSelected={phoneSelected}
             doorOpen={doorOpen}
             onSelectPhone={() => setPhoneSelected(true)}
-            onTurnOnPhone={() => setPhoneOn(true)}
+            onTurnOnPhone={() => {
+              setPhoneOn((current) => {
+                if (!current) {
+                  playPhoneOpenClick();
+                }
+                return true;
+              });
+              setPhoneUnlocked(false);
+              setPhoneFocusMode(true);
+            }}
             onToggleDoor={() => setDoorOpen((value) => !value)}
+            inputLocked={phoneFocusMode}
           />
         </Canvas>
       </div>
@@ -98,14 +113,19 @@ function App() {
         </div>
       )}
 
-      {isAwake && (phoneOn || !hasInteracted) && (
+      {isAwake && phoneUnlocked && (
         <div className="look-hint" aria-hidden="true">
-          {phoneOn
-            ? "WASD to move. Double-click objects to interact"
-            : phoneSelected
-              ? "Hover on the phone to turn it on"
-              : "Click and drag to look around"}
+          WASD/Arrow keys to move. Double-click objects to interact
         </div>
+      )}
+
+      {isAwake && phoneOn && phoneFocusMode && (
+        <PhoneUnlockOverlay
+          onUnlock={() => {
+            setPhoneUnlocked(true);
+            setPhoneFocusMode(false);
+          }}
+        />
       )}
     </main>
   );
@@ -114,25 +134,29 @@ function App() {
 function BedroomScene({
   isAwake,
   phoneOn,
+  phoneUnlocked,
   phoneSelected,
   doorOpen,
   onSelectPhone,
   onTurnOnPhone,
   onToggleDoor,
+  inputLocked,
 }: {
   isAwake: boolean;
   phoneOn: boolean;
+  phoneUnlocked: boolean;
   phoneSelected: boolean;
   doorOpen: boolean;
   onSelectPhone: () => void;
   onTurnOnPhone: () => void;
   onToggleDoor: () => void;
+  inputLocked: boolean;
 }) {
   return (
     <>
       <color attach="background" args={["#0b0f0f"]} />
       <fog attach="fog" args={["#0b0f0f", 6.5, 19]} />
-      <LookOnlyCamera enabled={isAwake} canMove={phoneOn} />
+      <LookOnlyCamera enabled={isAwake} canMove={phoneUnlocked} inputLocked={inputLocked} />
       <hemisphereLight intensity={0.46} color="#9fb4ba" groundColor="#1d1612" />
       <ambientLight intensity={0.3} color="#879ba5" />
       <directionalLight
@@ -165,7 +189,7 @@ function BedroomScene({
   );
 }
 
-function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boolean }) {
+function LookOnlyCamera({ enabled, canMove, inputLocked }: { enabled: boolean; canMove: boolean; inputLocked: boolean }) {
   const { camera, gl } = useThree();
   const yaw = useRef(0);
   const pitch = useRef(MathUtils.degToRad(-14));
@@ -190,7 +214,12 @@ function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boole
     camera.rotation.x = pitch.current;
     camera.rotation.z = Math.sin(performance.now() * 0.00042) * 0.006;
 
-    if (!enabled || !canMove) {
+    if (!enabled || inputLocked) {
+      movement.current = { forward: false, backward: false, left: false, right: false };
+      position.current.lerp(fixedHeadPosition, 0.12);
+      targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.1);
+      targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.1);
+    } else if (!canMove) {
       movement.current = { forward: false, backward: false, left: false, right: false };
       position.current.copy(fixedHeadPosition);
     } else {
@@ -224,6 +253,13 @@ function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boole
         position.current.add(movementVector);
         constrainPlayerPosition(position.current);
       }
+
+      const distanceFromBed = Math.hypot(
+        position.current.x - fixedHeadPosition.x,
+        position.current.z - fixedHeadPosition.z,
+      );
+      const targetHeight = distanceFromBed > bedExitDistance ? standingEyeHeight : fixedHeadPosition.y;
+      position.current.y = MathUtils.lerp(position.current.y, targetHeight, 0.1);
     }
 
     camera.position.copy(position.current);
@@ -233,7 +269,7 @@ function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boole
     const canvas = gl.domElement;
 
     const onPointerMove = (event: PointerEvent) => {
-      if (!enabled) return;
+      if (!enabled || inputLocked) return;
 
       if (!drag.current.active) return;
 
@@ -245,7 +281,7 @@ function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boole
     };
 
     const onPointerDown = (event: PointerEvent) => {
-      if (!enabled) return;
+      if (!enabled || inputLocked) return;
       drag.current = { active: true, x: event.clientX, y: event.clientY };
     };
 
@@ -254,7 +290,7 @@ function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boole
     };
 
     const onTouchMove = (event: TouchEvent) => {
-      if (!enabled || event.touches.length !== 1) return;
+      if (!enabled || inputLocked || event.touches.length !== 1) return;
       const touch = event.touches[0];
 
       if (drag.current.active) {
@@ -271,7 +307,7 @@ function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boole
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!enabled || !canMove) return;
+      if (!enabled || inputLocked || !canMove) return;
       if (event.code === "KeyW" || event.code === "ArrowUp") movement.current.forward = true;
       if (event.code === "KeyS" || event.code === "ArrowDown") movement.current.backward = true;
       if (event.code === "KeyA" || event.code === "ArrowLeft") movement.current.left = true;
@@ -302,7 +338,7 @@ function LookOnlyCamera({ enabled, canMove }: { enabled: boolean; canMove: boole
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [enabled, canMove, gl.domElement]);
+  }, [enabled, canMove, inputLocked, gl.domElement]);
 
   return null;
 }
@@ -1127,6 +1163,106 @@ function constrainPlayerPosition(position: Vector3) {
   }
 
   position.z = MathUtils.clamp(position.z, -5.55, 2.75);
+}
+
+function playPhoneOpenClick() {
+  const AudioContextImpl = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextImpl) return;
+
+  const context = new AudioContextImpl();
+  const now = context.currentTime;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(1720, now);
+  oscillator.frequency.exponentialRampToValueAtTime(1400, now + 0.012);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.09, now + 0.0016);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.024);
+  oscillator.onended = () => {
+    context.close().catch(() => {});
+  };
+}
+
+function PhoneUnlockOverlay({ onUnlock }: { onUnlock: () => void }) {
+  const [dragging, setDragging] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const resize = () => {
+      if (!trackRef.current) return;
+      setTrackWidth(trackRef.current.getBoundingClientRect().width);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const onMove = (event: PointerEvent) => {
+      if (!trackRef.current) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      const raw = (event.clientX - rect.left) / rect.width;
+      const next = MathUtils.clamp(raw, 0, 1);
+      setProgress(next);
+      if (next >= 0.95) {
+        setDragging(false);
+        onUnlock();
+      }
+    };
+
+    const onUp = () => {
+      setDragging(false);
+      setProgress((value) => (value >= 0.95 ? 1 : 0));
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [dragging, onUnlock]);
+
+  const knobTravel = Math.max((trackWidth || 1) - 56, 0);
+  const knobX = knobTravel * progress;
+
+  return (
+    <div className="phone-focus-overlay">
+      <div className="phone-focus-panel">
+        <div className="phone-focus-time">2:47</div>
+        <div className="phone-focus-day">Monday</div>
+        <div className="phone-focus-photo">
+          <div className="phone-focus-person-head" />
+          <div className="phone-focus-person-body" />
+        </div>
+        <div className="phone-focus-slider" ref={trackRef}>
+          <div className="phone-focus-slider-label">slide to unlock</div>
+          <button
+            className="phone-focus-slider-knob"
+            type="button"
+            style={{ transform: `translateX(${knobX}px)` }}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            aria-label="Slide to unlock"
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default App;

@@ -107,6 +107,117 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.phone-focus-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.phone-focus-panel {
+  width: min(320px, 72vw);
+  aspect-ratio: 9 / 19;
+  padding: 24px 18px 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(210, 230, 240, 0.32);
+  background:
+    linear-gradient(180deg, rgba(178, 215, 235, 0.42) 0%, rgba(132, 174, 198, 0.34) 32%, rgba(95, 132, 154, 0.42) 100%),
+    rgba(180, 214, 232, 0.18);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.52),
+    0 0 42px rgba(141, 198, 228, 0.22);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+.phone-focus-time {
+  color: rgba(236, 245, 251, 0.98);
+  font-size: 56px;
+  line-height: 1;
+  text-align: center;
+}
+
+.phone-focus-day {
+  margin-top: 8px;
+  color: rgba(224, 237, 246, 0.92);
+  font-size: 20px;
+  text-align: center;
+}
+
+.phone-focus-photo {
+  margin: 26px auto 0;
+  width: min(248px, 100%);
+  height: 58%;
+  border: 1px solid rgba(201, 225, 240, 0.34);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(171, 201, 220, 0.55) 0%, rgba(127, 157, 178, 0.36) 48%, rgba(72, 95, 116, 0.28) 100%),
+    rgba(54, 78, 95, 0.42);
+  position: relative;
+  overflow: hidden;
+}
+
+.phone-focus-person-head {
+  position: absolute;
+  left: 50%;
+  top: 27%;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 55% 44%, #e7d1bb 0%, #cfb196 74%, #af8f77 100%);
+}
+
+.phone-focus-person-body {
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 210px;
+  height: 190px;
+  transform: translateX(-50%);
+  clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(25, 38, 49, 0.96), rgba(18, 27, 36, 0.96));
+}
+
+.phone-focus-slider {
+  position: relative;
+  margin-top: 18px;
+  height: 54px;
+  border-radius: 30px;
+  border: 1px solid rgba(209, 225, 236, 0.32);
+  background: rgba(18, 31, 41, 0.38);
+  overflow: hidden;
+}
+
+.phone-focus-slider-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(227, 240, 249, 0.82);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: lowercase;
+  pointer-events: none;
+}
+
+.phone-focus-slider-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #edf7fd 0%, #c7ddeb 100%);
+  box-shadow: 0 6px 18px rgba(8, 15, 20, 0.42);
+  cursor: grab;
+}
+
+.phone-focus-slider-knob:active {
+  cursor: grabbing;
+}
+
 @media (max-width: 640px) {
   .look-hint {
     bottom: 18px;
