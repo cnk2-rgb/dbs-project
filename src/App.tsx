@@ -1,11 +1,13 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
 import { EffectComposer, Vignette } from "@react-three/postprocessing";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import {
   CanvasTexture,
   Color,
   MathUtils,
+  Mesh,
   MeshStandardMaterial,
   RepeatWrapping,
   SRGBColorSpace,
@@ -14,8 +16,11 @@ import {
 
 const pointerSensitivity = 0.002;
 const touchSensitivity = 0.004;
-const gazeLimit = MathUtils.degToRad(45);
-const fixedHeadPosition = new Vector3(0, 1.14, 2.82);
+const horizontalGazeLimit = MathUtils.degToRad(115);
+const minPitch = MathUtils.degToRad(-42);
+const maxPitch = MathUtils.degToRad(20);
+const fixedHeadPosition = new Vector3(-0.72, 1.14, 3.12);
+const phoneModelPath = "/models/phone-quaternius-public-domain.glb";
 
 type DragState = {
   active: boolean;
@@ -25,6 +30,8 @@ type DragState = {
 
 function App() {
   const [isAwake, setIsAwake] = useState(false);
+  const [phoneSelected, setPhoneSelected] = useState(false);
+  const [phoneOn, setPhoneOn] = useState(false);
 
   return (
     <main className="app-shell">
@@ -39,12 +46,23 @@ function App() {
             position: fixedHeadPosition,
             rotation: [MathUtils.degToRad(-7), 0, 0],
           }}
+          onPointerMissed={() => {
+            if (isAwake) {
+              setPhoneSelected(false);
+            }
+          }}
           shadows
           onCreated={({ gl }) => {
             gl.setClearColor(new Color("#0b0f0f"));
           }}
         >
-          <BedroomScene isAwake={isAwake} />
+          <BedroomScene
+            isAwake={isAwake}
+            phoneOn={phoneOn}
+            phoneSelected={phoneSelected}
+            onSelectPhone={() => setPhoneSelected(true)}
+            onTurnOnPhone={() => setPhoneOn(true)}
+          />
         </Canvas>
       </div>
 
@@ -60,14 +78,30 @@ function App() {
 
       {isAwake && (
         <div className="look-hint" aria-hidden="true">
-          Move the mouse to look around
+          {phoneOn
+            ? "Click and drag to look around"
+            : phoneSelected
+              ? "Click the phone again to turn it on"
+              : "Click and drag to look around. Click the phone to interact"}
         </div>
       )}
     </main>
   );
 }
 
-function BedroomScene({ isAwake }: { isAwake: boolean }) {
+function BedroomScene({
+  isAwake,
+  phoneOn,
+  phoneSelected,
+  onSelectPhone,
+  onTurnOnPhone,
+}: {
+  isAwake: boolean;
+  phoneOn: boolean;
+  phoneSelected: boolean;
+  onSelectPhone: () => void;
+  onTurnOnPhone: () => void;
+}) {
   return (
     <>
       <color attach="background" args={["#0b0f0f"]} />
@@ -89,7 +123,12 @@ function BedroomScene({ isAwake }: { isAwake: boolean }) {
 
       <RoomShell />
       <Bed />
-      <Furniture />
+      <Furniture
+        phoneOn={phoneOn}
+        phoneSelected={phoneSelected}
+        onSelectPhone={onSelectPhone}
+        onTurnOnPhone={onTurnOnPhone}
+      />
       <ScareDetails />
 
       <EffectComposer multisampling={0}>
@@ -128,31 +167,18 @@ function LookOnlyCamera({ enabled }: { enabled: boolean }) {
     const onPointerMove = (event: PointerEvent) => {
       if (!enabled) return;
 
-      if (document.pointerLockElement === canvas) {
-        targetYaw.current -= event.movementX * pointerSensitivity;
-        targetPitch.current -= event.movementY * pointerSensitivity;
-      } else if (drag.current.active) {
-        targetYaw.current -= (event.clientX - drag.current.x) * pointerSensitivity;
-        targetPitch.current -= (event.clientY - drag.current.y) * pointerSensitivity;
-        drag.current = { active: true, x: event.clientX, y: event.clientY };
-      } else {
-        const rect = canvas.getBoundingClientRect();
-        const normalizedX = (event.clientX - rect.left) / rect.width - 0.5;
-        const normalizedY = (event.clientY - rect.top) / rect.height - 0.5;
-        targetYaw.current += (normalizedX * 0.34 - targetYaw.current) * 0.04;
-        targetPitch.current += (MathUtils.degToRad(-14) + normalizedY * -0.16 - targetPitch.current) * 0.04;
-      }
+      if (!drag.current.active) return;
+
+      targetYaw.current -= (event.clientX - drag.current.x) * pointerSensitivity;
+      targetPitch.current -= (event.clientY - drag.current.y) * pointerSensitivity;
+      drag.current = { active: true, x: event.clientX, y: event.clientY };
 
       clampGaze(targetYaw, targetPitch);
     };
 
     const onPointerDown = (event: PointerEvent) => {
       if (!enabled) return;
-
       drag.current = { active: true, x: event.clientX, y: event.clientY };
-      if (event.pointerType === "mouse" && canvas.requestPointerLock) {
-        canvas.requestPointerLock();
-      }
     };
 
     const onPointerUp = () => {
@@ -258,8 +284,8 @@ function Bed() {
         <primitive object={frame} attach="material" />
       </mesh>
 
-      <mesh position={[0, 0.56, -0.18]} castShadow receiveShadow>
-        <boxGeometry args={[1.52, 0.18, 1.85, 12, 2, 12]} />
+      <mesh position={[0, 0.56, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.76, 0.18, 2.76, 12, 2, 12]} />
         <primitive object={blanket} attach="material" />
       </mesh>
 
@@ -271,7 +297,17 @@ function Bed() {
   );
 }
 
-function Furniture() {
+function Furniture({
+  phoneOn,
+  phoneSelected,
+  onSelectPhone,
+  onTurnOnPhone,
+}: {
+  phoneOn: boolean;
+  phoneSelected: boolean;
+  onSelectPhone: () => void;
+  onTurnOnPhone: () => void;
+}) {
   const wood = useRoughMaterial("#2a211b", "#0d0a08", 0.88, "wood");
   const darkMetal = useRoughMaterial("#111415", "#050606", 0.8);
   const paper = useRoughMaterial("#504940", "#1d1a17", 0.9, "paper");
@@ -330,16 +366,23 @@ function Furniture() {
         </mesh>
       </group>
 
-      <group position={[-1.16, 0, 2.2]}>
-        <mesh position={[0, 0.69, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.54, 0.64, 0.48]} />
+      <group position={[-1.38, 0, 3.12]}>
+        <mesh position={[0, 0.31, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.54, 0.48, 0.48]} />
           <primitive object={wood.clone()} attach="material" />
         </mesh>
-        <mesh position={[0, 1.04, 0.01]} castShadow receiveShadow>
+        <mesh position={[0, 0.585, 0.01]} castShadow receiveShadow>
           <boxGeometry args={[0.6, 0.07, 0.52]} />
           <primitive object={wood.clone()} attach="material" />
         </mesh>
-        <SmallPhone />
+        <Suspense fallback={null}>
+          <SmallPhone
+            selected={phoneSelected}
+            poweredOn={phoneOn}
+            onSelect={onSelectPhone}
+            onTurnOn={onTurnOnPhone}
+          />
+        </Suspense>
       </group>
     </group>
   );
@@ -387,43 +430,127 @@ function Baseboards() {
   );
 }
 
-function SmallPhone() {
-  const body = useRoughMaterial("#050606", "#000000", 0.62, "none");
-  const bevel = useRoughMaterial("#151717", "#050606", 0.72, "none");
-  const screen = useMemo(
+function SmallPhone({
+  selected,
+  poweredOn,
+  onSelect,
+  onTurnOn,
+}: {
+  selected: boolean;
+  poweredOn: boolean;
+  onSelect: () => void;
+  onTurnOn: () => void;
+}) {
+  const { scene } = useGLTF(phoneModelPath);
+  const [hovered, setHovered] = useState(false);
+  const lockscreenTexture = useMemo(() => createLockscreenTexture(), []);
+  const screenOffMaterial = useMemo(
     () =>
       new MeshStandardMaterial({
-        color: "#071012",
-        roughness: 0.86,
-        metalness: 0.03,
-        emissive: "#0b2428",
-        emissiveIntensity: 0.58,
+        color: "#020304",
+        roughness: 0.2,
+        metalness: 0.08,
+        emissive: "#02080b",
+        emissiveIntensity: 0.07,
       }),
     [],
   );
+  const screenOnMaterial = useMemo(
+    () =>
+      new MeshStandardMaterial({
+        color: "#ffffff",
+        map: lockscreenTexture,
+        roughness: 0.16,
+        metalness: 0.03,
+        emissive: "#214048",
+        emissiveIntensity: 0.22,
+      }),
+    [lockscreenTexture],
+  );
+  const phone = useMemo(() => {
+    const clone = scene.clone(true);
+
+    clone.traverse((object) => {
+      if (!(object instanceof Mesh)) return;
+
+      object.castShadow = true;
+      object.receiveShadow = true;
+
+      const materials = Array.isArray(object.material)
+        ? object.material.map((material) => material.clone())
+        : object.material.clone();
+
+      object.material = materials;
+
+      const materialList = Array.isArray(materials) ? materials : [materials];
+      for (const material of materialList) {
+        if (!(material instanceof MeshStandardMaterial)) continue;
+
+        if (material.name.toLowerCase().includes("black")) {
+          material.roughness = 0.18;
+          material.metalness = 0.08;
+          material.emissive.set("#071719");
+          material.emissiveIntensity = 0.18;
+        }
+      }
+    });
+
+    return clone;
+  }, [scene]);
 
   return (
-    <group position={[0.16, 1.095, 0.14]} rotation={[-Math.PI / 2, 0, MathUtils.degToRad(-14)]}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[0.18, 0.36, 0.024]} />
-        <primitive object={body} attach="material" />
+    <group
+      position={[0.13, 0.635, 0.09]}
+      rotation={[-Math.PI / 2, 0, MathUtils.degToRad(-14)]}
+      scale={0.18}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        setHovered(true);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        setHovered(false);
+      }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        if (!selected) {
+          onSelect();
+          return;
+        }
+        if (!poweredOn) {
+          onTurnOn();
+        }
+      }}
+    >
+      <primitive object={phone} />
+      <mesh position={[0, 0, 0.062]}>
+        <planeGeometry args={[0.36, 0.69]} />
+        <primitive object={poweredOn ? screenOnMaterial : screenOffMaterial} attach="material" />
       </mesh>
-      <pointLight position={[0, 0, 0.08]} intensity={0.16} color="#4fb5c6" distance={0.7} decay={2} />
-      <mesh position={[0, 0, 0.021]}>
-        <planeGeometry args={[0.14, 0.28]} />
-        <primitive object={screen} attach="material" />
-      </mesh>
-      <mesh position={[0, -0.16, 0.024]} castShadow>
-        <boxGeometry args={[0.06, 0.008, 0.005]} />
-        <primitive object={bevel} attach="material" />
-      </mesh>
-      <mesh position={[0, 0.155, 0.024]} castShadow>
-        <boxGeometry args={[0.036, 0.006, 0.005]} />
-        <primitive object={bevel.clone()} attach="material" />
-      </mesh>
+      {selected && !poweredOn && (
+        <mesh position={[0, 0, 0.058]}>
+          <planeGeometry args={[0.38, 0.71]} />
+          <meshBasicMaterial color="#89c9db" transparent opacity={0.22} />
+        </mesh>
+      )}
+      {hovered && !poweredOn && (
+        <mesh position={[0, 0, 0.056]}>
+          <planeGeometry args={[0.42, 0.75]} />
+          <meshBasicMaterial color="#7ec0dc" transparent opacity={0.16} />
+        </mesh>
+      )}
+      <pointLight
+        position={[0, 0.03, 0.03]}
+        intensity={poweredOn ? 0.2 : hovered ? 0.14 : 0.05}
+        color={poweredOn ? "#6db7d9" : "#4fb5c6"}
+        distance={0.45}
+        decay={2}
+      />
     </group>
   );
 }
+
+useGLTF.preload(phoneModelPath);
 
 function ScareDetails() {
   const frame = useRoughMaterial("#110f0d", "#050403", 0.85);
@@ -707,12 +834,74 @@ function createSurfaceTexture(baseColor: string, style: TextureStyle) {
   return texture;
 }
 
+function createLockscreenTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 1024;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    return null;
+  }
+
+  const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, "#203743");
+  gradient.addColorStop(0.52, "#3b5966");
+  gradient.addColorStop(1, "#11181d");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  context.fillStyle = "rgba(232, 236, 236, 0.95)";
+  context.font = "600 74px Inter, system-ui, sans-serif";
+  context.textAlign = "center";
+  context.fillText("2:47", canvas.width / 2, 118);
+
+  context.fillStyle = "rgba(221, 227, 229, 0.92)";
+  context.font = "500 26px Inter, system-ui, sans-serif";
+  context.fillText("Monday", canvas.width / 2, 160);
+
+  context.fillStyle = "rgba(8, 14, 18, 0.34)";
+  context.fillRect(44, 220, canvas.width - 88, 660);
+
+  context.fillStyle = "#2f3f48";
+  context.fillRect(66, 242, canvas.width - 132, 616);
+
+  context.fillStyle = "#223037";
+  context.beginPath();
+  context.arc(canvas.width / 2, 455, 136, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = "#d6c3ae";
+  context.beginPath();
+  context.arc(canvas.width / 2, 410, 82, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = "#241916";
+  context.beginPath();
+  context.arc(canvas.width / 2, 394, 88, Math.PI * 0.94, Math.PI * 2.05);
+  context.fill();
+
+  context.fillStyle = "#10161a";
+  context.beginPath();
+  context.moveTo(canvas.width / 2 - 126, 600);
+  context.lineTo(canvas.width / 2 + 126, 600);
+  context.lineTo(canvas.width / 2 + 188, 820);
+  context.lineTo(canvas.width / 2 - 188, 820);
+  context.closePath();
+  context.fill();
+
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 function clampGaze(
   yaw: MutableRefObject<number>,
   pitch: MutableRefObject<number>,
 ) {
-  yaw.current = MathUtils.clamp(yaw.current, -gazeLimit, gazeLimit);
-  pitch.current = MathUtils.clamp(pitch.current, MathUtils.degToRad(-34), MathUtils.degToRad(16));
+  yaw.current = MathUtils.clamp(yaw.current, -horizontalGazeLimit, horizontalGazeLimit);
+  pitch.current = MathUtils.clamp(pitch.current, minPitch, maxPitch);
 }
 
 export default App;

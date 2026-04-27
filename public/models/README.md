@@ -12,3 +12,7 @@ Recommended workflow:
 6. Load them in React Three Fiber with `useGLTF("/models/bedroom-bed.glb")` from `@react-three/drei`.
 
 For v1, keep models low-to-medium poly and prefer rough PBR materials. Avoid glossy materials unless an object is supposed to be reflective, such as a phone screen, mirror, TV, or window.
+
+## Included Models
+
+- `phone-quaternius-public-domain.glb` - Phone model by Quaternius, downloaded from Get3DModels: https://www.get3dmodels.com/tools-and-gadgets/phone/. Listed there as public domain.
