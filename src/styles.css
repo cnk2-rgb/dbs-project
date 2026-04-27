@@ -64,10 +64,49 @@ button {
 .start-overlay {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  padding: 16px 24px;
   background: #000;
   z-index: 4;
+}
+
+.start-intake {
+  width: min(320px, calc(100vw - 56px));
+  display: grid;
+  gap: 20px;
+}
+
+.start-directive {
+  margin: 0;
+  color: rgba(203, 218, 230, 0.86);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.start-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(186, 203, 220, 0.38);
+  color: rgba(224, 234, 243, 0.95);
+  background: rgba(10, 16, 20, 0.74);
+}
+
+.start-file {
+  display: grid;
+  gap: 8px;
+  color: rgba(203, 218, 230, 0.86);
+  font-size: 12px;
+}
+
+.start-file input {
+  color: rgba(210, 224, 234, 0.86);
 }
 
 .intro-blackout {
@@ -83,7 +122,7 @@ button {
 }
 
 .intro-blackout-pan {
-  animation: intro-fade 2.4s ease-out forwards;
+  animation: intro-fade 3.6s ease-out forwards;
 }
 
 @keyframes intro-flicker {
@@ -214,6 +253,17 @@ button {
   overflow: hidden;
 }
 
+.phone-focus-photo.has-image {
+  background: rgba(18, 27, 35, 0.42);
+  border-color: rgba(206, 226, 238, 0.42);
+}
+
+.phone-focus-photo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .phone-focus-person-head {
   position: absolute;
   left: 50%;
@@ -273,6 +323,65 @@ button {
 
 .phone-focus-slider-knob:active {
   cursor: grabbing;
+}
+
+.phone-home {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+}
+
+.phone-home-header {
+  padding: 4px 4px 0;
+}
+
+.phone-home-title {
+  color: rgba(233, 244, 251, 0.98);
+  font-size: 22px;
+}
+
+.phone-home-number {
+  color: rgba(212, 228, 239, 0.86);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.phone-home-feed {
+  border: 1px solid rgba(211, 228, 238, 0.28);
+  background: rgba(16, 25, 32, 0.26);
+  overflow-y: auto;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.phone-home-card {
+  min-height: 56px;
+  border: 1px solid rgba(212, 228, 236, 0.22);
+  background: rgba(214, 235, 248, 0.1);
+  color: rgba(226, 240, 248, 0.92);
+  display: grid;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.phone-home-chat {
+  min-height: 62px;
+  border: 1px solid rgba(212, 228, 236, 0.24);
+  background: rgba(16, 25, 32, 0.34);
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.phone-home-bubble {
+  max-width: 70%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #f2f8fc;
+  background: rgba(85, 156, 212, 0.8);
 }
 
 @media (max-width: 640px) {

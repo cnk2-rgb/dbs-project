@@ -1,4 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function expectStartOverlaySpacing(page: Page) {
+  const intakeBounds = await page.locator(".start-intake").boundingBox();
+  const buttonBounds = await page.getByRole("button", { name: "Open your eyes" }).boundingBox();
+  expect(intakeBounds).not.toBeNull();
+  expect(buttonBounds).not.toBeNull();
+  if (intakeBounds && buttonBounds) {
+    expect(buttonBounds.y).toBeGreaterThanOrEqual(intakeBounds.y + intakeBounds.height);
+  }
+}
 
 test("renders the fixed bedroom scene", async ({ page }) => {
   await page.goto("/");
@@ -6,6 +16,7 @@ test("renders the fixed bedroom scene", async ({ page }) => {
   await expect(page).toHaveTitle(/Hello Clarice/);
   await expect(page.getByTestId("bedroom-canvas")).toBeVisible();
   await expect(page.getByRole("button", { name: "Open your eyes" })).toBeVisible();
+  await expectStartOverlaySpacing(page);
   await page.getByRole("button", { name: "Open your eyes" }).click();
   await expect(page.getByText("Click and drag to look around")).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(600);
@@ -38,4 +49,11 @@ test("renders the fixed bedroom scene", async ({ page }) => {
   });
 
   expect(nonBlankPixels).toBeGreaterThan(100);
+});
+
+test("keeps start overlay fields separated on small viewports", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Open your eyes" })).toBeVisible();
+  await expectStartOverlaySpacing(page);
 });

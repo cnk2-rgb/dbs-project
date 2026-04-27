@@ -16,3 +16,31 @@ npm run test:e2e
 ```
 
 The dev server runs at `http://localhost:5173/` by default.
+
+## Unlock SMS Webhook
+
+On phone unlock, the app can send an SMS with message `wyd` to the number entered on the start screen.
+
+Set this env var:
+
+```sh
+VITE_SMS_WEBHOOK_URL=https://your-backend.example.com/send-sms
+VITE_TWILIO_FROM_NUMBER=+18336323219
+```
+
+For local Vite dev, use:
+
+```sh
+VITE_SMS_WEBHOOK_URL=http://localhost:5173/api/send-sms
+```
+
+The frontend will `POST` form-encoded data to that URL:
+
+```txt
+To=+15551234567&From=+18336323219&Body=wyd
+```
+
+Notes:
+
+- Use a backend endpoint (for example, Node/Express, serverless function, or Twilio Function) that holds SMS API credentials securely.
+- If `VITE_SMS_WEBHOOK_URL` is missing or the phone number is blank, no request is sent.

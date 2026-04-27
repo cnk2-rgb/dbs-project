@@ -20,6 +20,7 @@ const touchSensitivity = 0.004;
 const horizontalGazeLimit = MathUtils.degToRad(180);
 const minPitch = MathUtils.degToRad(-42);
 const maxPitch = MathUtils.degToRad(20);
+const panelFocusPitch = MathUtils.degToRad(78);
 const fixedHeadPosition = new Vector3(-0.72, 1.14, 3.12);
 const phoneModelPath = "/models/phone-quaternius-public-domain.glb";
 const worldUp = new Vector3(0, 1, 0);
@@ -33,6 +34,9 @@ type DragState = {
 };
 
 type IntroPhase = "asleep" | "flicker" | "pan" | "active";
+type PhonePanelScreen = "lock" | "home" | null;
+const smsWebhookUrl = (import.meta.env.VITE_SMS_WEBHOOK_URL ?? "").trim();
+const smsFromNumber = (import.meta.env.VITE_TWILIO_FROM_NUMBER ?? "").trim();
 
 function App() {
   const [isAwake, setIsAwake] = useState(false);
@@ -40,9 +44,11 @@ function App() {
   const [phoneSelected, setPhoneSelected] = useState(false);
   const [phoneOn, setPhoneOn] = useState(false);
   const [phoneUnlocked, setPhoneUnlocked] = useState(false);
-  const [phoneFocusMode, setPhoneFocusMode] = useState(false);
+  const [phonePanelScreen, setPhonePanelScreen] = useState<PhonePanelScreen>(null);
   const [doorOpen, setDoorOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [playerPhoneNumber, setPlayerPhoneNumber] = useState("");
+  const [playerPhotoUrl, setPlayerPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const onFirstInteraction = () => {
@@ -73,15 +79,24 @@ function App() {
     if (introPhase === "pan") {
       const panTimer = window.setTimeout(() => {
         setIntroPhase("active");
-      }, 2400);
+      }, 3600);
       return () => {
         window.clearTimeout(panTimer);
       };
     }
   }, [introPhase]);
 
+  useEffect(() => {
+    return () => {
+      if (playerPhotoUrl) {
+        URL.revokeObjectURL(playerPhotoUrl);
+      }
+    };
+  }, [playerPhotoUrl]);
+
   const introActive = introPhase !== "active";
-  const controlsLocked = phoneFocusMode || introActive;
+  const panelActive = phonePanelScreen !== null;
+  const controlsLocked = panelActive || introActive;
 
   return (
     <main className="app-shell">
@@ -111,6 +126,7 @@ function App() {
             introPhase={introPhase}
             phoneOn={phoneOn}
             phoneUnlocked={phoneUnlocked}
+            phonePanelActive={panelActive}
             phoneSelected={phoneSelected}
             doorOpen={doorOpen}
             onSelectPhone={() => setPhoneSelected(true)}
@@ -122,7 +138,7 @@ function App() {
                 return true;
               });
               setPhoneUnlocked(false);
-              setPhoneFocusMode(true);
+              setPhonePanelScreen("lock");
             }}
             onToggleDoor={() => setDoorOpen((value) => !value)}
             inputLocked={controlsLocked}
@@ -137,6 +153,32 @@ function App() {
 
       {!isAwake && (
         <div className="start-overlay">
+          <div className="start-intake">
+            <p className="start-directive">enter your phone number (optional)</p>
+            <input
+              className="start-input"
+              type="tel"
+              inputMode="tel"
+              placeholder="Phone number"
+              value={playerPhoneNumber}
+              onChange={(event) => setPlayerPhoneNumber(event.target.value)}
+            />
+            <p className="start-directive">upload your image (optional)</p>
+            <label className="start-file">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  setPlayerPhotoUrl((previous) => {
+                    if (previous) URL.revokeObjectURL(previous);
+                    return URL.createObjectURL(file);
+                  });
+                }}
+              />
+            </label>
+          </div>
           <button
             className="wake-button"
             type="button"
@@ -150,7 +192,7 @@ function App() {
         </div>
       )}
 
-      {isAwake && introPhase === "active" && !phoneFocusMode && (
+      {isAwake && introPhase === "active" && !panelActive && (
         <div className="look-hint" aria-hidden="true">
           {phoneUnlocked
             ? "WASD/Arrow keys to move. Double-click objects to interact"
@@ -158,11 +200,15 @@ function App() {
         </div>
       )}
 
-      {isAwake && phoneOn && phoneFocusMode && (
-        <PhoneUnlockOverlay
+      {isAwake && phoneOn && phonePanelScreen && (
+        <PhonePanelOverlay
+          screen={phonePanelScreen}
+          phoneNumber={playerPhoneNumber}
+          lockscreenImageUrl={playerPhotoUrl}
           onUnlock={() => {
             setPhoneUnlocked(true);
-            setPhoneFocusMode(false);
+            setPhonePanelScreen("home");
+            void sendUnlockText(playerPhoneNumber);
           }}
         />
       )}
@@ -175,6 +221,7 @@ function BedroomScene({
   introPhase,
   phoneOn,
   phoneUnlocked,
+  phonePanelActive,
   phoneSelected,
   doorOpen,
   onSelectPhone,
@@ -186,6 +233,7 @@ function BedroomScene({
   introPhase: IntroPhase;
   phoneOn: boolean;
   phoneUnlocked: boolean;
+  phonePanelActive: boolean;
   phoneSelected: boolean;
   doorOpen: boolean;
   onSelectPhone: () => void;
@@ -197,7 +245,13 @@ function BedroomScene({
     <>
       <color attach="background" args={["#0b0f0f"]} />
       <fog attach="fog" args={["#0b0f0f", 6.5, 19]} />
-      <LookOnlyCamera enabled={isAwake} canMove={phoneUnlocked} inputLocked={inputLocked} introPhase={introPhase} />
+      <LookOnlyCamera
+        enabled={isAwake}
+        canMove={phoneUnlocked}
+        inputLocked={inputLocked}
+        introPhase={introPhase}
+        phonePanelActive={phonePanelActive}
+      />
       <hemisphereLight intensity={0.46} color="#9fb4ba" groundColor="#1d1612" />
       <ambientLight intensity={0.3} color="#879ba5" />
       <directionalLight
@@ -235,11 +289,13 @@ function LookOnlyCamera({
   canMove,
   inputLocked,
   introPhase,
+  phonePanelActive,
 }: {
   enabled: boolean;
   canMove: boolean;
   inputLocked: boolean;
   introPhase: IntroPhase;
+  phonePanelActive: boolean;
 }) {
   const { camera, gl } = useThree();
   const yaw = useRef(0);
@@ -257,8 +313,8 @@ function LookOnlyCamera({
       targetYaw.current = 0;
       targetPitch.current = maxPitch;
     } else if (introPhase === "pan") {
-      targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.03);
-      targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.03);
+      targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.016);
+      targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.016);
     }
 
     if (!enabled) {
@@ -277,6 +333,10 @@ function LookOnlyCamera({
       movement.current = { forward: false, backward: false, left: false, right: false };
       if (introPhase === "flicker") {
         position.current.copy(fixedHeadPosition);
+      } else if (phonePanelActive) {
+        position.current.lerp(fixedHeadPosition, 0.12);
+        targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.12);
+        targetPitch.current = MathUtils.lerp(targetPitch.current, panelFocusPitch, 0.12);
       } else {
         position.current.lerp(fixedHeadPosition, 0.05);
       }
@@ -403,7 +463,7 @@ function LookOnlyCamera({
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [enabled, canMove, inputLocked, introPhase, gl.domElement]);
+  }, [enabled, canMove, inputLocked, introPhase, phonePanelActive, gl.domElement]);
 
   return null;
 }
@@ -1256,7 +1316,44 @@ function playPhoneOpenClick() {
   };
 }
 
-function PhoneUnlockOverlay({ onUnlock }: { onUnlock: () => void }) {
+async function sendUnlockText(phoneNumber: string) {
+  const to = phoneNumber.trim();
+  if (!to || !smsWebhookUrl) return;
+
+  try {
+    const payload = new URLSearchParams({
+      To: to,
+      Body: "wyd",
+    });
+    if (smsFromNumber) {
+      payload.set("From", smsFromNumber);
+    }
+
+    const response = await fetch(smsWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: payload.toString(),
+    });
+
+    if (!response.ok) {
+      console.warn("Failed to send unlock text:", response.status);
+    }
+  } catch (error) {
+    console.warn("Failed to send unlock text:", error);
+  }
+}
+
+function PhonePanelOverlay({
+  screen,
+  phoneNumber,
+  lockscreenImageUrl,
+  onUnlock,
+}: {
+  screen: Exclude<PhonePanelScreen, null>;
+  phoneNumber: string;
+  lockscreenImageUrl: string | null;
+  onUnlock: () => void;
+}) {
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -1273,6 +1370,7 @@ function PhoneUnlockOverlay({ onUnlock }: { onUnlock: () => void }) {
   }, []);
 
   useEffect(() => {
+    if (screen !== "lock") return;
     if (!dragging) return;
 
     const onMove = (event: PointerEvent) => {
@@ -1298,7 +1396,7 @@ function PhoneUnlockOverlay({ onUnlock }: { onUnlock: () => void }) {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [dragging, onUnlock]);
+  }, [dragging, onUnlock, screen]);
 
   const knobTravel = Math.max((trackWidth || 1) - 56, 0);
   const knobX = knobTravel * progress;
@@ -1306,25 +1404,52 @@ function PhoneUnlockOverlay({ onUnlock }: { onUnlock: () => void }) {
   return (
     <div className="phone-focus-overlay">
       <div className="phone-focus-panel">
-        <div className="phone-focus-time">2:47</div>
-        <div className="phone-focus-day">Monday</div>
-        <div className="phone-focus-photo">
-          <div className="phone-focus-person-head" />
-          <div className="phone-focus-person-body" />
-        </div>
-        <div className="phone-focus-slider" ref={trackRef}>
-          <div className="phone-focus-slider-label">slide to unlock</div>
-          <button
-            className="phone-focus-slider-knob"
-            type="button"
-            style={{ transform: `translateX(${knobX}px)` }}
-            onPointerDown={(event) => {
-              event.preventDefault();
-              setDragging(true);
-            }}
-            aria-label="Slide to unlock"
-          />
-        </div>
+        {screen === "lock" ? (
+          <>
+            <div className="phone-focus-time">2:47</div>
+            <div className="phone-focus-day">Monday</div>
+            <div className={`phone-focus-photo${lockscreenImageUrl ? " has-image" : ""}`}>
+              {lockscreenImageUrl ? (
+                <img src={lockscreenImageUrl} alt="Your lockscreen" className="phone-focus-photo-image" />
+              ) : (
+                <>
+                  <div className="phone-focus-person-head" />
+                  <div className="phone-focus-person-body" />
+                </>
+              )}
+            </div>
+            <div className="phone-focus-slider" ref={trackRef}>
+              <div className="phone-focus-slider-label">slide to unlock</div>
+              <button
+                className="phone-focus-slider-knob"
+                type="button"
+                style={{ transform: `translateX(${knobX}px)` }}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                aria-label="Slide to unlock"
+              />
+            </div>
+          </>
+        ) : (
+          <div className="phone-home">
+            <div className="phone-home-header">
+              <div className="phone-home-title">Home</div>
+              <div className="phone-home-number">{phoneNumber || "No phone number set"}</div>
+            </div>
+            <div
+              className="phone-home-feed"
+            >
+              <div className="phone-home-card">Messages</div>
+              <div className="phone-home-card">Photos</div>
+              <div className="phone-home-card">Notes</div>
+              <div className="phone-home-card">Calendar</div>
+              <div className="phone-home-card">Music</div>
+              <div className="phone-home-card">Settings</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
