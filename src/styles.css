@@ -203,6 +203,19 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.e2e-open-phone {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  border: 1px solid rgba(204, 218, 230, 0.48);
+  background: rgba(8, 12, 17, 0.82);
+  color: rgba(239, 246, 252, 0.94);
+  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
 .phone-focus-overlay {
   position: absolute;
   inset: 0;
@@ -216,14 +229,13 @@ button {
   aspect-ratio: 9 / 19;
   padding: 0;
   border-radius: 36px;
-  border: 1px solid rgba(215, 228, 239, 0.38);
-  background:
-    linear-gradient(180deg, rgba(115, 143, 163, 0.42) 0%, rgba(78, 102, 124, 0.46) 46%, rgba(48, 64, 80, 0.54) 100%),
-    rgba(124, 150, 170, 0.22);
+  border: 1px solid rgba(215, 228, 239, 0.32);
+  background: rgba(95, 122, 147, 0.12);
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.52),
-    0 0 42px rgba(141, 198, 228, 0.18);
-  backdrop-filter: blur(7px);
+    0 0 42px rgba(141, 198, 228, 0.12);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
   pointer-events: auto;
   overflow: hidden;
 }
@@ -402,10 +414,10 @@ button {
   gap: 10px;
   padding: 10px 10px 12px;
   background:
-    radial-gradient(circle at 84% 18%, rgba(150, 248, 255, 0.28) 0%, rgba(150, 248, 255, 0) 38%),
-    radial-gradient(circle at 14% 28%, rgba(112, 192, 243, 0.4) 0%, rgba(112, 192, 243, 0) 34%),
-    radial-gradient(circle at 36% 66%, rgba(140, 245, 196, 0.3) 0%, rgba(140, 245, 196, 0) 44%),
-    linear-gradient(158deg, #79c7dd 0%, #1e589c 34%, #0f316e 68%, #1f238f 100%);
+    radial-gradient(circle at 84% 18%, rgba(150, 248, 255, 0.2) 0%, rgba(150, 248, 255, 0) 38%),
+    radial-gradient(circle at 14% 28%, rgba(112, 192, 243, 0.28) 0%, rgba(112, 192, 243, 0) 34%),
+    radial-gradient(circle at 36% 66%, rgba(140, 245, 196, 0.2) 0%, rgba(140, 245, 196, 0) 44%),
+    linear-gradient(158deg, rgba(121, 199, 221, 0.28) 0%, rgba(30, 88, 156, 0.36) 34%, rgba(15, 49, 110, 0.42) 68%, rgba(31, 35, 143, 0.44) 100%);
 }
 
 .phone-home-top {
@@ -530,23 +542,6 @@ button {
   background: linear-gradient(180deg, #ffffff, #e6e8ee);
 }
 
-.phone-home-dots {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(238, 247, 252, 0.44);
-}
-
-.dot.active {
-  background: rgba(255, 255, 255, 0.96);
-}
-
 .phone-home-dock {
   margin-top: auto;
   border-radius: 18px;
@@ -562,6 +557,8 @@ button {
   width: 50px;
   aspect-ratio: 1;
   border-radius: 14px;
+  border: 0;
+  padding: 0;
 }
 
 .icon-phone {
@@ -578,6 +575,96 @@ button {
 
 .icon-music {
   background: linear-gradient(180deg, #ff6682, #d73f52);
+}
+
+.active-social-app {
+  border: 2px solid rgba(255, 241, 176, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(255, 90, 109, 0.28),
+    0 0 24px rgba(255, 106, 122, 0.5);
+  cursor: pointer;
+}
+
+.phone-social {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(13, 16, 20, 0.74), rgba(8, 10, 14, 0.8));
+}
+
+.phone-social-header {
+  padding: 10px 12px;
+  color: rgba(247, 250, 255, 0.96);
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(214, 228, 239, 0.18);
+}
+
+.phone-social-feed {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.phone-social-post {
+  margin: 0;
+  border: 1px solid rgba(194, 210, 226, 0.2);
+  border-radius: 14px;
+  background: rgba(24, 30, 38, 0.65);
+  padding: 8px;
+  color: rgba(232, 242, 250, 0.9);
+  font-size: 10px;
+}
+
+.phone-social-post-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  margin-bottom: 6px;
+}
+
+.phone-social-post-head .avatar {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fba9a1, #8faeff);
+}
+
+.phone-social-media {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 75% 20%, rgba(255, 169, 115, 0.45) 0%, rgba(255, 169, 115, 0) 38%),
+    radial-gradient(circle at 28% 68%, rgba(109, 202, 255, 0.4) 0%, rgba(109, 202, 255, 0) 45%),
+    linear-gradient(140deg, #4a4f89 0%, #271c3e 46%, #211a2f 100%);
+  margin-bottom: 6px;
+}
+
+.phone-social-blackout {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: grid;
+  place-items: center;
+}
+
+.phone-social-reflection {
+  width: 56%;
+  height: 36%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 35%, rgba(210, 232, 248, 0.6), rgba(110, 128, 148, 0.16) 46%, rgba(20, 24, 28, 0) 78%),
+    radial-gradient(circle at 58% 68%, rgba(146, 173, 197, 0.3), rgba(23, 29, 34, 0) 68%);
+  filter: blur(1px);
+  opacity: 0.8;
 }
 
 .phone-home-number {

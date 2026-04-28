@@ -21,6 +21,8 @@ const horizontalGazeLimit = MathUtils.degToRad(180);
 const minPitch = MathUtils.degToRad(-42);
 const maxPitch = MathUtils.degToRad(20);
 const panelFocusPitch = MathUtils.degToRad(78);
+const returnPhoneYaw = MathUtils.degToRad(-22);
+const returnPhonePitch = MathUtils.degToRad(8);
 const fixedHeadPosition = new Vector3(-0.72, 1.14, 3.12);
 const phoneModelPath = "/models/phone-quaternius-public-domain.glb";
 const worldUp = new Vector3(0, 1, 0);
@@ -34,11 +36,15 @@ type DragState = {
 };
 
 type IntroPhase = "asleep" | "flicker" | "pan" | "active";
-type PhonePanelScreen = "lock" | "home" | null;
+type PhonePanelScreen = "lock" | "home" | "social" | null;
 const smsWebhookUrl = (import.meta.env.VITE_SMS_WEBHOOK_URL ?? "").trim();
 const smsFromNumber = (import.meta.env.VITE_TWILIO_FROM_NUMBER ?? "").trim();
 
 function App() {
+  const e2eMode = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("e2e") === "1";
+  }, []);
   const [isAwake, setIsAwake] = useState(false);
   const [introPhase, setIntroPhase] = useState<IntroPhase>("asleep");
   const [phoneSelected, setPhoneSelected] = useState(false);
@@ -49,6 +55,7 @@ function App() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [playerPhoneNumber, setPlayerPhoneNumber] = useState("");
   const [playerPhotoUrl, setPlayerPhotoUrl] = useState<string | null>(null);
+  const [cameraReturnTick, setCameraReturnTick] = useState(0);
 
   useEffect(() => {
     const onFirstInteraction = () => {
@@ -142,6 +149,7 @@ function App() {
             }}
             onToggleDoor={() => setDoorOpen((value) => !value)}
             inputLocked={controlsLocked}
+            returnToPhoneTick={cameraReturnTick}
           />
         </Canvas>
       </div>
@@ -200,15 +208,36 @@ function App() {
         </div>
       )}
 
+      {e2eMode && isAwake && introPhase === "active" && (
+        <button
+          type="button"
+          className="e2e-open-phone"
+          onClick={() => {
+            setPhoneOn(true);
+            setPhoneUnlocked(true);
+            setPhoneSelected(true);
+            setPhonePanelScreen("home");
+          }}
+        >
+          Open phone panel (e2e)
+        </button>
+      )}
+
       {isAwake && phoneOn && phonePanelScreen && (
         <PhonePanelOverlay
           screen={phonePanelScreen}
           phoneNumber={playerPhoneNumber}
           lockscreenImageUrl={playerPhotoUrl}
+          onOpenSocial={() => setPhonePanelScreen("social")}
           onUnlock={() => {
             setPhoneUnlocked(true);
             setPhonePanelScreen("home");
             void sendUnlockText(playerPhoneNumber);
+          }}
+          onCloseAndReturn={() => {
+            setPhonePanelScreen(null);
+            setPhoneSelected(true);
+            setCameraReturnTick((value) => value + 1);
           }}
         />
       )}
@@ -228,6 +257,7 @@ function BedroomScene({
   onTurnOnPhone,
   onToggleDoor,
   inputLocked,
+  returnToPhoneTick,
 }: {
   isAwake: boolean;
   introPhase: IntroPhase;
@@ -240,6 +270,7 @@ function BedroomScene({
   onTurnOnPhone: () => void;
   onToggleDoor: () => void;
   inputLocked: boolean;
+  returnToPhoneTick: number;
 }) {
   return (
     <>
@@ -251,6 +282,7 @@ function BedroomScene({
         inputLocked={inputLocked}
         introPhase={introPhase}
         phonePanelActive={phonePanelActive}
+        returnToPhoneTick={returnToPhoneTick}
       />
       <hemisphereLight intensity={0.46} color="#9fb4ba" groundColor="#1d1612" />
       <ambientLight intensity={0.3} color="#879ba5" />
@@ -290,12 +322,14 @@ function LookOnlyCamera({
   inputLocked,
   introPhase,
   phonePanelActive,
+  returnToPhoneTick,
 }: {
   enabled: boolean;
   canMove: boolean;
   inputLocked: boolean;
   introPhase: IntroPhase;
   phonePanelActive: boolean;
+  returnToPhoneTick: number;
 }) {
   const { camera, gl } = useThree();
   const yaw = useRef(0);
@@ -307,8 +341,15 @@ function LookOnlyCamera({
   const movement = useRef({ forward: false, backward: false, left: false, right: false });
   const forwardDirection = useRef(new Vector3());
   const rightDirection = useRef(new Vector3());
+  const returnCameraUntil = useRef(0);
+
+  useEffect(() => {
+    if (returnToPhoneTick <= 0) return;
+    returnCameraUntil.current = performance.now() + 3200;
+  }, [returnToPhoneTick]);
 
   useFrame((_, delta) => {
+    const returnCameraActive = performance.now() < returnCameraUntil.current;
     if (introPhase === "flicker") {
       targetYaw.current = 0;
       targetPitch.current = maxPitch;
@@ -337,10 +378,14 @@ function LookOnlyCamera({
         position.current.lerp(fixedHeadPosition, 0.12);
         targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.12);
         targetPitch.current = MathUtils.lerp(targetPitch.current, panelFocusPitch, 0.12);
+      } else if (returnCameraActive) {
+        position.current.lerp(fixedHeadPosition, 0.02);
+        targetYaw.current = MathUtils.lerp(targetYaw.current, returnPhoneYaw, 0.02);
+        targetPitch.current = MathUtils.lerp(targetPitch.current, returnPhonePitch, 0.02);
       } else {
         position.current.lerp(fixedHeadPosition, 0.05);
       }
-      if (introPhase !== "flicker" && introPhase !== "pan") {
+      if (introPhase !== "flicker" && introPhase !== "pan" && !returnCameraActive) {
         targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.1);
         targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.1);
       }
@@ -1347,17 +1392,25 @@ function PhonePanelOverlay({
   screen,
   phoneNumber,
   lockscreenImageUrl,
+  onOpenSocial,
   onUnlock,
+  onCloseAndReturn,
 }: {
   screen: Exclude<PhonePanelScreen, null>;
   phoneNumber: string;
   lockscreenImageUrl: string | null;
+  onOpenSocial: () => void;
   onUnlock: () => void;
+  onCloseAndReturn: () => void;
 }) {
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
   const [trackWidth, setTrackWidth] = useState(0);
+  const [scrollStarted, setScrollStarted] = useState(false);
+  const [blackoutActive, setBlackoutActive] = useState(false);
+  const [socialPostCount, setSocialPostCount] = useState(30);
   const trackRef = useRef<HTMLDivElement>(null);
+  const socialFeedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const resize = () => {
@@ -1398,8 +1451,39 @@ function PhonePanelOverlay({
     };
   }, [dragging, onUnlock, screen]);
 
+  useEffect(() => {
+    if (screen !== "social") {
+      setScrollStarted(false);
+      setBlackoutActive(false);
+      setSocialPostCount(30);
+    }
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen !== "social" || !scrollStarted) return;
+    const blackTimer = window.setTimeout(() => {
+      setBlackoutActive(true);
+    }, 10000);
+    return () => window.clearTimeout(blackTimer);
+  }, [screen, scrollStarted]);
+
+  useEffect(() => {
+    if (screen !== "social" || !blackoutActive) return;
+    const closeTimer = window.setTimeout(() => {
+      onCloseAndReturn();
+    }, 3000);
+    return () => window.clearTimeout(closeTimer);
+  }, [blackoutActive, onCloseAndReturn, screen]);
+
   const knobTravel = Math.max((trackWidth || 1) - 56, 0);
   const knobX = knobTravel * progress;
+  const socialPosts = Array.from({ length: socialPostCount }, (_, index) => index + 1);
+
+  const beginSocialSequence = () => {
+    if (!scrollStarted) {
+      setScrollStarted(true);
+    }
+  };
 
   return (
     <div className="phone-focus-overlay">
@@ -1441,7 +1525,7 @@ function PhonePanelOverlay({
               />
             </div>
           </div>
-        ) : (
+        ) : screen === "home" ? (
           <div className="phone-home">
             <div className="phone-home-top">
               <div className="phone-home-clock">09:41</div>
@@ -1489,23 +1573,54 @@ function PhonePanelOverlay({
                 <div className="phone-home-label">Reminders</div>
               </div>
             </div>
-            <div className="phone-home-dots" aria-hidden="true">
-              <span className="dot active" />
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
-            </div>
             <div className="phone-home-dock">
               <div className="phone-home-dock-icon icon-phone" />
               <div className="phone-home-dock-icon icon-safari" />
               <div className="phone-home-dock-icon icon-messages" />
-              <div className="phone-home-dock-icon icon-music" />
+              <button
+                type="button"
+                className="phone-home-dock-icon icon-music active-social-app"
+                aria-label="Open social feed"
+                onClick={onOpenSocial}
+              />
             </div>
             <div className="phone-home-number">{phoneNumber || "No phone number set"}</div>
+          </div>
+        ) : (
+          <div className="phone-social">
+            <div className="phone-social-header">For You</div>
+            <div
+              className="phone-social-feed"
+              ref={socialFeedRef}
+              onWheel={beginSocialSequence}
+              onTouchStart={beginSocialSequence}
+              onPointerDown={beginSocialSequence}
+              onScroll={() => {
+                beginSocialSequence();
+                const feed = socialFeedRef.current;
+                if (!feed) return;
+                const remaining = feed.scrollHeight - feed.scrollTop - feed.clientHeight;
+                if (remaining < 260) {
+                  setSocialPostCount((count) => count + 20);
+                }
+              }}
+            >
+              {socialPosts.map((postId) => (
+                <article key={postId} className="phone-social-post">
+                  <div className="phone-social-post-head">
+                    <span className="avatar" />
+                    <span>@nightfeed_{postId}</span>
+                  </div>
+                  <div className="phone-social-media" />
+                  <p>Late-night clip #{postId}.</p>
+                </article>
+              ))}
+            </div>
+            {blackoutActive && (
+              <div className="phone-social-blackout">
+                <div className="phone-social-reflection" aria-hidden="true" />
+              </div>
+            )}
           </div>
         )}
       </div>

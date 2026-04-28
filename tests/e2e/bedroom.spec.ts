@@ -57,3 +57,24 @@ test("keeps start overlay fields separated on small viewports", async ({ page })
   await expect(page.getByRole("button", { name: "Open your eyes" })).toBeVisible();
   await expectStartOverlaySpacing(page);
 });
+
+test("social feed scroll triggers blackout then closes panel", async ({ page }) => {
+  test.setTimeout(45_000);
+  await page.goto("/?e2e=1");
+  await page.getByRole("button", { name: "Open your eyes" }).click();
+  await expect(page.getByText("Click and drag to look around")).toBeVisible({ timeout: 8_000 });
+
+  await page.getByRole("button", { name: "Open phone panel (e2e)" }).click();
+  await expect(page.getByLabel("Open social feed")).toBeVisible();
+  await page.getByLabel("Open social feed").click();
+
+  const feed = page.locator(".phone-social-feed");
+  await expect(feed).toBeVisible();
+
+  await feed.hover();
+  await page.mouse.wheel(0, 1800);
+  await page.mouse.wheel(0, 1800);
+
+  await expect(page.locator(".phone-social-blackout")).toBeVisible({ timeout: 13_000 });
+  await expect(page.locator(".phone-focus-panel")).toBeHidden({ timeout: 5_000 });
+});
