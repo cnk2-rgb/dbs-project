@@ -203,6 +203,37 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.wake-line-dialog {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  transform: translateX(-50%);
+  z-index: 5;
+  color: rgba(234, 243, 250, 0.92);
+  font-size: 24px;
+  letter-spacing: 0.01em;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  animation: wake-line-fade 3.6s ease forwards;
+}
+
+.post-phone-dialogue {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: min(88vw, 620px);
+  margin: 0;
+  color: rgba(233, 242, 250, 0.95);
+  font-size: 23px;
+  line-height: 1.3;
+  text-align: center;
+  text-shadow: 0 5px 16px rgba(0, 0, 0, 0.84);
+  pointer-events: none;
+  animation: post-phone-dialogue-fade 5.6s ease forwards;
+}
+
 .e2e-open-phone {
   position: absolute;
   top: 10px;
@@ -580,9 +611,11 @@ button {
 .active-social-app {
   border: 2px solid rgba(255, 241, 176, 0.95);
   box-shadow:
-    0 0 0 2px rgba(255, 90, 109, 0.28),
-    0 0 24px rgba(255, 106, 122, 0.5);
+    0 0 0 3px rgba(255, 90, 109, 0.4),
+    0 0 30px rgba(255, 106, 122, 0.68),
+    0 0 52px rgba(255, 78, 103, 0.5);
   cursor: pointer;
+  animation: social-app-pulse 2.8s ease-in-out infinite;
 }
 
 .phone-social {
@@ -607,9 +640,14 @@ button {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  cursor: grab;
   padding: 8px;
   display: grid;
   gap: 8px;
+}
+
+.phone-social-feed:active {
+  cursor: grabbing;
 }
 
 .phone-social-post {
@@ -641,10 +679,7 @@ button {
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 10px;
-  background:
-    radial-gradient(circle at 75% 20%, rgba(255, 169, 115, 0.45) 0%, rgba(255, 169, 115, 0) 38%),
-    radial-gradient(circle at 28% 68%, rgba(109, 202, 255, 0.4) 0%, rgba(109, 202, 255, 0) 45%),
-    linear-gradient(140deg, #4a4f89 0%, #271c3e 46%, #211a2f 100%);
+  object-fit: cover;
   margin-bottom: 6px;
 }
 
@@ -654,6 +689,8 @@ button {
   background: #000;
   display: grid;
   place-items: center;
+  align-content: center;
+  animation: phone-screen-flicker-off 2s steps(1, end) forwards;
 }
 
 .phone-social-reflection {
@@ -664,7 +701,99 @@ button {
     radial-gradient(circle at 40% 35%, rgba(210, 232, 248, 0.6), rgba(110, 128, 148, 0.16) 46%, rgba(20, 24, 28, 0) 78%),
     radial-gradient(circle at 58% 68%, rgba(146, 173, 197, 0.3), rgba(23, 29, 34, 0) 68%);
   filter: blur(1px);
-  opacity: 0.8;
+  opacity: 0;
+  animation: reflection-flicker-once 700ms ease-out 3.1s 1 forwards;
+}
+
+@keyframes phone-screen-flicker-off {
+  0% { opacity: 0.02; }
+  10% { opacity: 0.12; }
+  19% { opacity: 0.04; }
+  27% { opacity: 0.24; }
+  35% { opacity: 0.07; }
+  43% { opacity: 0.34; }
+  50% { opacity: 0.1; }
+  57% { opacity: 0.48; }
+  63% { opacity: 0.14; }
+  68% { opacity: 0.63; }
+  73% { opacity: 0.18; }
+  77% { opacity: 0.76; }
+  81% { opacity: 0.24; }
+  84% { opacity: 0.88; }
+  87% { opacity: 0.3; }
+  90% { opacity: 0.95; }
+  93% { opacity: 0.46; }
+  96% { opacity: 1; }
+  98% { opacity: 0.82; }
+  100% { opacity: 1; }
+}
+
+@keyframes social-app-pulse {
+  0% {
+    box-shadow:
+      0 0 0 2px rgba(255, 90, 109, 0.28),
+      0 0 18px rgba(255, 106, 122, 0.46),
+      0 0 34px rgba(255, 78, 103, 0.34);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(255, 90, 109, 0.5),
+      0 0 34px rgba(255, 106, 122, 0.78),
+      0 0 60px rgba(255, 78, 103, 0.58);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(255, 90, 109, 0.28),
+      0 0 18px rgba(255, 106, 122, 0.46),
+      0 0 34px rgba(255, 78, 103, 0.34);
+  }
+}
+
+@keyframes wake-line-fade {
+  0% {
+    opacity: 0;
+  }
+  24% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes reflection-flicker-once {
+  0% {
+    opacity: 0;
+    filter: blur(1.7px);
+  }
+  45% {
+    opacity: 0.82;
+    filter: blur(0.95px);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(1.6px);
+  }
+}
+
+@keyframes post-phone-dialogue-fade {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(9px);
+  }
+  16% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .phone-home-number {
@@ -680,5 +809,16 @@ button {
     font-size: 11px;
     white-space: normal;
     text-align: center;
+  }
+
+  .wake-line-dialog {
+    bottom: 19%;
+    font-size: 19px;
+  }
+
+  .post-phone-dialogue {
+    bottom: 18%;
+    width: min(90vw, 420px);
+    font-size: 18px;
   }
 }

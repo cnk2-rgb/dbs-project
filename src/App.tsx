@@ -21,13 +21,19 @@ const horizontalGazeLimit = MathUtils.degToRad(180);
 const minPitch = MathUtils.degToRad(-42);
 const maxPitch = MathUtils.degToRad(20);
 const panelFocusPitch = MathUtils.degToRad(78);
-const returnPhoneYaw = MathUtils.degToRad(-22);
-const returnPhonePitch = MathUtils.degToRad(8);
 const fixedHeadPosition = new Vector3(-0.72, 1.14, 3.12);
 const phoneModelPath = "/models/phone-quaternius-public-domain.glb";
 const worldUp = new Vector3(0, 1, 0);
 const standingEyeHeight = 1.64;
 const bedExitDistance = 0.48;
+const socialImagePool = [
+  "/social-samples/01.jpg",
+  "/social-samples/02.jpg",
+  "/social-samples/03.jpg",
+  "/social-samples/04.jpg",
+  "/social-samples/05.jpg",
+  "/social-samples/06.jpg",
+];
 
 type DragState = {
   active: boolean;
@@ -56,6 +62,9 @@ function App() {
   const [playerPhoneNumber, setPlayerPhoneNumber] = useState("");
   const [playerPhotoUrl, setPlayerPhotoUrl] = useState<string | null>(null);
   const [cameraReturnTick, setCameraReturnTick] = useState(0);
+  const [wakeDialogVisible, setWakeDialogVisible] = useState(false);
+  const [phoneDisplayTime, setPhoneDisplayTime] = useState("2:47");
+  const [postPhoneDialogueVisible, setPostPhoneDialogueVisible] = useState(false);
 
   useEffect(() => {
     const onFirstInteraction = () => {
@@ -94,6 +103,15 @@ function App() {
   }, [introPhase]);
 
   useEffect(() => {
+    if (!isAwake || introPhase !== "active") return;
+    setWakeDialogVisible(true);
+    const hideTimer = window.setTimeout(() => {
+      setWakeDialogVisible(false);
+    }, 3600);
+    return () => window.clearTimeout(hideTimer);
+  }, [introPhase, isAwake]);
+
+  useEffect(() => {
     return () => {
       if (playerPhotoUrl) {
         URL.revokeObjectURL(playerPhotoUrl);
@@ -103,7 +121,7 @@ function App() {
 
   const introActive = introPhase !== "active";
   const panelActive = phonePanelScreen !== null;
-  const controlsLocked = panelActive || introActive;
+  const controlsLocked = panelActive || introActive || wakeDialogVisible || postPhoneDialogueVisible;
 
   return (
     <main className="app-shell">
@@ -200,7 +218,20 @@ function App() {
         </div>
       )}
 
-      {isAwake && introPhase === "active" && !panelActive && (
+      {isAwake && introPhase === "active" && wakeDialogVisible && (
+        <div className="wake-line-dialog" aria-live="polite">
+          ...where&apos;s my phone?
+        </div>
+      )}
+
+      {isAwake && introPhase === "active" && postPhoneDialogueVisible && (
+        <div className="post-phone-dialogue" aria-live="polite">
+          what was that?? my phone won&apos;t turn on again... ugh whatever. I&apos;ve been scrolling for an hour
+          already, let me get out of bed.
+        </div>
+      )}
+
+      {isAwake && introPhase === "active" && !panelActive && !wakeDialogVisible && (
         <div className="look-hint" aria-hidden="true">
           {phoneUnlocked
             ? "WASD/Arrow keys to move. Double-click objects to interact"
@@ -228,6 +259,7 @@ function App() {
           screen={phonePanelScreen}
           phoneNumber={playerPhoneNumber}
           lockscreenImageUrl={playerPhotoUrl}
+          displayTime={phoneDisplayTime}
           onOpenSocial={() => setPhonePanelScreen("social")}
           onUnlock={() => {
             setPhoneUnlocked(true);
@@ -238,6 +270,11 @@ function App() {
             setPhonePanelScreen(null);
             setPhoneSelected(true);
             setCameraReturnTick((value) => value + 1);
+            setPhoneDisplayTime((current) => advancePhoneTimeByHour(current));
+            setPostPhoneDialogueVisible(true);
+            window.setTimeout(() => {
+              setPostPhoneDialogueVisible(false);
+            }, 5600);
           }}
         />
       )}
@@ -345,11 +382,12 @@ function LookOnlyCamera({
 
   useEffect(() => {
     if (returnToPhoneTick <= 0) return;
-    returnCameraUntil.current = performance.now() + 3200;
+    returnCameraUntil.current = performance.now() + 2200;
   }, [returnToPhoneTick]);
 
   useFrame((_, delta) => {
-    const returnCameraActive = performance.now() < returnCameraUntil.current;
+    const now = performance.now();
+    const returnCameraActive = now < returnCameraUntil.current;
     if (introPhase === "flicker") {
       targetYaw.current = 0;
       targetPitch.current = maxPitch;
@@ -379,9 +417,9 @@ function LookOnlyCamera({
         targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.12);
         targetPitch.current = MathUtils.lerp(targetPitch.current, panelFocusPitch, 0.12);
       } else if (returnCameraActive) {
-        position.current.lerp(fixedHeadPosition, 0.02);
-        targetYaw.current = MathUtils.lerp(targetYaw.current, returnPhoneYaw, 0.02);
-        targetPitch.current = MathUtils.lerp(targetPitch.current, returnPhonePitch, 0.02);
+        position.current.lerp(fixedHeadPosition, 0.08);
+        targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.08);
+        targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.08);
       } else {
         position.current.lerp(fixedHeadPosition, 0.05);
       }
@@ -1392,6 +1430,7 @@ function PhonePanelOverlay({
   screen,
   phoneNumber,
   lockscreenImageUrl,
+  displayTime,
   onOpenSocial,
   onUnlock,
   onCloseAndReturn,
@@ -1399,6 +1438,7 @@ function PhonePanelOverlay({
   screen: Exclude<PhonePanelScreen, null>;
   phoneNumber: string;
   lockscreenImageUrl: string | null;
+  displayTime: string;
   onOpenSocial: () => void;
   onUnlock: () => void;
   onCloseAndReturn: () => void;
@@ -1406,11 +1446,12 @@ function PhonePanelOverlay({
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
   const [trackWidth, setTrackWidth] = useState(0);
-  const [scrollStarted, setScrollStarted] = useState(false);
   const [blackoutActive, setBlackoutActive] = useState(false);
   const [socialPostCount, setSocialPostCount] = useState(30);
   const trackRef = useRef<HTMLDivElement>(null);
   const socialFeedRef = useRef<HTMLDivElement>(null);
+  const socialFeedDragging = useRef(false);
+  const socialFeedLastY = useRef(0);
 
   useEffect(() => {
     const resize = () => {
@@ -1453,37 +1494,32 @@ function PhonePanelOverlay({
 
   useEffect(() => {
     if (screen !== "social") {
-      setScrollStarted(false);
       setBlackoutActive(false);
       setSocialPostCount(30);
     }
   }, [screen]);
 
   useEffect(() => {
-    if (screen !== "social" || !scrollStarted) return;
+    if (screen !== "social") return;
     const blackTimer = window.setTimeout(() => {
       setBlackoutActive(true);
     }, 10000);
     return () => window.clearTimeout(blackTimer);
-  }, [screen, scrollStarted]);
+  }, [screen]);
 
   useEffect(() => {
     if (screen !== "social" || !blackoutActive) return;
     const closeTimer = window.setTimeout(() => {
       onCloseAndReturn();
-    }, 3000);
-    return () => window.clearTimeout(closeTimer);
+    }, 5000);
+    return () => {
+      window.clearTimeout(closeTimer);
+    };
   }, [blackoutActive, onCloseAndReturn, screen]);
 
   const knobTravel = Math.max((trackWidth || 1) - 56, 0);
   const knobX = knobTravel * progress;
   const socialPosts = Array.from({ length: socialPostCount }, (_, index) => index + 1);
-
-  const beginSocialSequence = () => {
-    if (!scrollStarted) {
-      setScrollStarted(true);
-    }
-  };
 
   return (
     <div className="phone-focus-overlay">
@@ -1499,7 +1535,7 @@ function PhonePanelOverlay({
                 <span className="battery-icon" />
               </div>
             </div>
-            <div className="phone-focus-time">2:47</div>
+            <div className="phone-focus-time">{displayTime}</div>
             <div className="phone-focus-day">Monday</div>
             <div className={`phone-focus-photo${lockscreenImageUrl ? " has-image" : ""}`}>
               {lockscreenImageUrl ? (
@@ -1592,11 +1628,27 @@ function PhonePanelOverlay({
             <div
               className="phone-social-feed"
               ref={socialFeedRef}
-              onWheel={beginSocialSequence}
-              onTouchStart={beginSocialSequence}
-              onPointerDown={beginSocialSequence}
+              onPointerDownCapture={(event) => {
+                socialFeedDragging.current = true;
+                socialFeedLastY.current = event.clientY;
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerMove={(event) => {
+                if (!socialFeedDragging.current) return;
+                const feed = socialFeedRef.current;
+                if (!feed) return;
+                const deltaY = socialFeedLastY.current - event.clientY;
+                feed.scrollTop += deltaY;
+                socialFeedLastY.current = event.clientY;
+              }}
+              onPointerUp={(event) => {
+                socialFeedDragging.current = false;
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }}
+              onPointerCancel={() => {
+                socialFeedDragging.current = false;
+              }}
               onScroll={() => {
-                beginSocialSequence();
                 const feed = socialFeedRef.current;
                 if (!feed) return;
                 const remaining = feed.scrollHeight - feed.scrollTop - feed.clientHeight;
@@ -1611,7 +1663,12 @@ function PhonePanelOverlay({
                     <span className="avatar" />
                     <span>@nightfeed_{postId}</span>
                   </div>
-                  <div className="phone-social-media" />
+                  <img
+                    src={socialImagePool[(postId - 1) % socialImagePool.length]}
+                    alt={`Social post ${postId}`}
+                    className="phone-social-media"
+                    loading="lazy"
+                  />
                   <p>Late-night clip #{postId}.</p>
                 </article>
               ))}
@@ -1626,6 +1683,18 @@ function PhonePanelOverlay({
       </div>
     </div>
   );
+}
+
+function advancePhoneTimeByHour(value: string) {
+  const match = value.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return value;
+
+  const hour = Number.parseInt(match[1], 10);
+  const minute = match[2];
+  const nextHour = ((hour % 12) || 12) + 1;
+  const normalizedHour = ((nextHour - 1) % 12) + 1;
+
+  return `${normalizedHour}:${minute}`;
 }
 
 export default App;
