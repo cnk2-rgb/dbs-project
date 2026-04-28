@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#27272a"/>
+      <stop offset="100%" stop-color="#040404"/>
+    </radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5dbc2"/>
+      <stop offset="100%" stop-color="#c28f6c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <path d="M282 252 C342 162 682 170 742 264 C800 354 768 612 626 774 C558 852 466 846 398 778 C254 634 220 344 282 252 Z" fill="url(#skin)"/>
+  <ellipse cx="410" cy="430" rx="90" ry="84" fill="#0c0c0c"/>
+  <ellipse cx="620" cy="438" rx="86" ry="78" fill="#0c0c0c"/>
+  <path d="M372 612 C438 566 586 566 652 618 C626 694 574 744 510 744 C442 744 392 696 372 612 Z" fill="#120d0a"/>
+  <path d="M330 760 C380 690 428 692 450 804 C468 896 394 930 354 872 C330 836 322 794 330 760 Z" fill="#d8ac8f"/>
+  <path d="M620 760 C672 686 724 694 738 804 C748 888 684 924 648 878 C622 846 610 798 620 760 Z" fill="#d8ac8f"/>
+  <path d="M500 748 C548 676 606 686 620 804 C634 918 530 948 492 874 C470 832 476 784 500 748 Z" fill="#d4a489"/>
+  <path d="M358 352 C434 286 532 286 606 350" stroke="#72513d" stroke-width="18" fill="none" opacity="0.5"/>
+</svg>

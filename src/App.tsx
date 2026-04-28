@@ -42,9 +42,10 @@ type DragState = {
 };
 
 type IntroPhase = "asleep" | "flicker" | "pan" | "active";
-type PhonePanelScreen = "lock" | "home" | "social" | null;
+type PhonePanelScreen = "lock" | "home" | "social" | "black" | null;
 const smsWebhookUrl = (import.meta.env.VITE_SMS_WEBHOOK_URL ?? "").trim();
 const smsFromNumber = (import.meta.env.VITE_TWILIO_FROM_NUMBER ?? "").trim();
+const inventoryWebhookUrl = (import.meta.env.VITE_INVENTORY_WEBHOOK_URL ?? "").trim();
 
 function App() {
   const e2eMode = useMemo(() => {
@@ -61,10 +62,17 @@ function App() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [playerPhoneNumber, setPlayerPhoneNumber] = useState("");
   const [playerPhotoUrl, setPlayerPhotoUrl] = useState<string | null>(null);
-  const [cameraReturnTick, setCameraReturnTick] = useState(0);
   const [wakeDialogVisible, setWakeDialogVisible] = useState(false);
   const [phoneDisplayTime, setPhoneDisplayTime] = useState("2:47");
   const [postPhoneDialogueVisible, setPostPhoneDialogueVisible] = useState(false);
+  const [postPhoneFollowupDialogueVisible, setPostPhoneFollowupDialogueVisible] = useState(false);
+  const [postPhoneDialogueShown, setPostPhoneDialogueShown] = useState(false);
+  const [doorDialogueVisible, setDoorDialogueVisible] = useState(false);
+  const [doorDialogueShown, setDoorDialogueShown] = useState(false);
+  const [phoneInInventory, setPhoneInInventory] = useState(false);
+  const [phoneOpenHintVisible, setPhoneOpenHintVisible] = useState(false);
+  const [closePhoneHintVisible, setClosePhoneHintVisible] = useState(false);
+  const [hasOpenedInventoryPhone, setHasOpenedInventoryPhone] = useState(false);
 
   useEffect(() => {
     const onFirstInteraction = () => {
@@ -121,7 +129,33 @@ function App() {
 
   const introActive = introPhase !== "active";
   const panelActive = phonePanelScreen !== null;
-  const controlsLocked = panelActive || introActive || wakeDialogVisible || postPhoneDialogueVisible;
+  const controlsLocked =
+    panelActive || introActive || wakeDialogVisible || postPhoneDialogueVisible || postPhoneFollowupDialogueVisible || doorDialogueVisible;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "KeyO") return;
+      if (!isAwake || introPhase !== "active") return;
+      if (!phoneInInventory || panelActive) return;
+
+      event.preventDefault();
+      playPhoneOpenClick();
+      setPhoneOn(true);
+      setPhonePanelScreen("black");
+      setPhoneOpenHintVisible(false);
+
+      if (!hasOpenedInventoryPhone) {
+        setHasOpenedInventoryPhone(true);
+        setClosePhoneHintVisible(true);
+        window.setTimeout(() => {
+          setClosePhoneHintVisible(false);
+        }, 4200);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [hasOpenedInventoryPhone, introPhase, isAwake, panelActive, phoneInInventory]);
 
   return (
     <main className="app-shell">
@@ -138,6 +172,12 @@ function App() {
           }}
           onPointerMissed={() => {
             if (isAwake) {
+              if (phoneInInventory && phonePanelScreen) {
+                playPhoneCloseClick();
+                setPhonePanelScreen(null);
+                setPhoneOn(false);
+                return;
+              }
               setPhoneSelected(false);
             }
           }}
@@ -153,21 +193,42 @@ function App() {
             phoneUnlocked={phoneUnlocked}
             phonePanelActive={panelActive}
             phoneSelected={phoneSelected}
+            phoneInInventory={phoneInInventory}
             doorOpen={doorOpen}
-            onSelectPhone={() => setPhoneSelected(true)}
+            onSelectPhone={() => {
+              playPhoneTapClick();
+              setPhoneSelected(true);
+            }}
             onTurnOnPhone={() => {
-              setPhoneOn((current) => {
-                if (!current) {
-                  playPhoneOpenClick();
-                }
-                return true;
-              });
+              playPhoneOpenClick();
+              setPhoneOn(true);
               setPhoneUnlocked(false);
               setPhonePanelScreen("lock");
             }}
-            onToggleDoor={() => setDoorOpen((value) => !value)}
+            onPickupPhone={() => {
+              playPhonePickupClick();
+              setPhoneInInventory(true);
+              setPhoneOn(false);
+              setPhoneSelected(false);
+              setPhonePanelScreen(null);
+              setPhoneOpenHintVisible(true);
+              void sendInventoryEvent("phone", "collected");
+            }}
+            onToggleDoor={() => {
+              setDoorOpen((value) => {
+                const next = !value;
+                if (next && !doorDialogueShown) {
+                  setDoorDialogueShown(true);
+                  setDoorDialogueVisible(true);
+                  window.setTimeout(() => {
+                    setDoorDialogueVisible(false);
+                  }, 4600);
+                }
+                return next;
+              });
+            }}
             inputLocked={controlsLocked}
-            returnToPhoneTick={cameraReturnTick}
+            returnToPhoneTick={0}
           />
         </Canvas>
       </div>
@@ -231,27 +292,67 @@ function App() {
         </div>
       )}
 
-      {isAwake && introPhase === "active" && !panelActive && !wakeDialogVisible && (
+      {isAwake && introPhase === "active" && postPhoneFollowupDialogueVisible && (
+        <div className="post-phone-dialogue" aria-live="polite">
+          ... I should take my phone with me just in case
+        </div>
+      )}
+
+      {isAwake && introPhase === "active" && doorDialogueVisible && (
+        <div className="post-phone-dialogue" aria-live="polite">
+          I&apos;m hungry - let&apos;s make some breakfast in the kitchen
+        </div>
+      )}
+
+      {isAwake && introPhase === "active" && !panelActive && !wakeDialogVisible && !phoneUnlocked && (
         <div className="look-hint" aria-hidden="true">
-          {phoneUnlocked
-            ? "WASD/Arrow keys to move. Double-click objects to interact"
-            : "Click and drag to look around"}
+          Click and drag to look around
+        </div>
+      )}
+
+      {isAwake && introPhase === "active" && phoneInInventory && phoneOpenHintVisible && !panelActive && (
+        <div className="look-hint" aria-live="polite">
+          press o to open phone
+        </div>
+      )}
+
+      {isAwake && introPhase === "active" && closePhoneHintVisible && panelActive && (
+        <div className="phone-close-hint" aria-live="polite">
+          click outside the phone to close
         </div>
       )}
 
       {e2eMode && isAwake && introPhase === "active" && (
-        <button
-          type="button"
-          className="e2e-open-phone"
-          onClick={() => {
-            setPhoneOn(true);
-            setPhoneUnlocked(true);
-            setPhoneSelected(true);
-            setPhonePanelScreen("home");
-          }}
-        >
-          Open phone panel (e2e)
-        </button>
+        <>
+          <button
+            type="button"
+            className="e2e-open-phone"
+            onClick={() => {
+              setPhoneOn(true);
+              setPhoneUnlocked(true);
+              setPhoneSelected(true);
+              setPhonePanelScreen("home");
+            }}
+          >
+            Open phone panel (e2e)
+          </button>
+          <button
+            type="button"
+            className="e2e-open-phone"
+            style={{ top: 44 }}
+            onClick={() => {
+              playPhonePickupClick();
+              setPhoneInInventory(true);
+              setPhoneOn(false);
+              setPhoneSelected(false);
+              setPhonePanelScreen(null);
+              setPhoneOpenHintVisible(true);
+              void sendInventoryEvent("phone", "collected");
+            }}
+          >
+            Collect phone (e2e)
+          </button>
+        </>
       )}
 
       {isAwake && phoneOn && phonePanelScreen && (
@@ -260,21 +361,35 @@ function App() {
           phoneNumber={playerPhoneNumber}
           lockscreenImageUrl={playerPhotoUrl}
           displayTime={phoneDisplayTime}
-          onOpenSocial={() => setPhonePanelScreen("social")}
+          onOpenSocial={() => {
+            playPhoneTapClick();
+            setPhonePanelScreen("social");
+          }}
           onUnlock={() => {
+            playPhoneUnlockClick();
             setPhoneUnlocked(true);
             setPhonePanelScreen("home");
             void sendUnlockText(playerPhoneNumber);
           }}
           onCloseAndReturn={() => {
+            playPhoneCloseClick();
             setPhonePanelScreen(null);
+            setPhoneOn(false);
             setPhoneSelected(true);
-            setCameraReturnTick((value) => value + 1);
             setPhoneDisplayTime((current) => advancePhoneTimeByHour(current));
-            setPostPhoneDialogueVisible(true);
-            window.setTimeout(() => {
-              setPostPhoneDialogueVisible(false);
-            }, 5600);
+            if (!postPhoneDialogueShown) {
+              setPostPhoneDialogueShown(true);
+              setPostPhoneDialogueVisible(true);
+              window.setTimeout(() => {
+                setPostPhoneDialogueVisible(false);
+              }, 5600);
+              window.setTimeout(() => {
+                setPostPhoneFollowupDialogueVisible(true);
+                window.setTimeout(() => {
+                  setPostPhoneFollowupDialogueVisible(false);
+                }, 4200);
+              }, 7600);
+            }
           }}
         />
       )}
@@ -289,9 +404,11 @@ function BedroomScene({
   phoneUnlocked,
   phonePanelActive,
   phoneSelected,
+  phoneInInventory,
   doorOpen,
   onSelectPhone,
   onTurnOnPhone,
+  onPickupPhone,
   onToggleDoor,
   inputLocked,
   returnToPhoneTick,
@@ -302,9 +419,11 @@ function BedroomScene({
   phoneUnlocked: boolean;
   phonePanelActive: boolean;
   phoneSelected: boolean;
+  phoneInInventory: boolean;
   doorOpen: boolean;
   onSelectPhone: () => void;
   onTurnOnPhone: () => void;
+  onPickupPhone: () => void;
   onToggleDoor: () => void;
   inputLocked: boolean;
   returnToPhoneTick: number;
@@ -341,8 +460,10 @@ function BedroomScene({
       <Furniture
         phoneOn={phoneOn}
         phoneSelected={phoneSelected}
+        phoneInInventory={phoneInInventory}
         onSelectPhone={onSelectPhone}
         onTurnOnPhone={onTurnOnPhone}
+        onPickupPhone={onPickupPhone}
       />
       <ScareDetails />
 
@@ -612,6 +733,11 @@ function HallwayWing() {
   const hallwaySurface = useRoughMaterial("#1c2429", "#0a0f13", 0.84, "concrete");
   const hallwayWall = useRoughMaterial("#202b31", "#0b1116", 0.76, "paint");
   const hallwayCeiling = useRoughMaterial("#1a2329", "#090e12", 0.74, "paint");
+  const kitchenCabinet = useRoughMaterial("#dad4c8", "#5f5a50", 0.62, "wood");
+  const kitchenCounter = useRoughMaterial("#c6c1b5", "#6c6558", 0.52, "concrete");
+  const kitchenMetal = useRoughMaterial("#9ea6ad", "#394149", 0.28, "none");
+  const kitchenDark = useRoughMaterial("#2a2f34", "#0a0d10", 0.46, "none");
+  const kitchenWood = useRoughMaterial("#9a7f61", "#3e2c1e", 0.78, "wood");
 
   return (
     <group>
@@ -694,6 +820,122 @@ function HallwayWing() {
       <pointLight position={[-8.45, 2.1, -4.05]} intensity={0.56} color="#78a0bb" distance={5.5} decay={2} />
       <pointLight position={[-8.45, 2.1, 1.35]} intensity={0.56} color="#78a0bb" distance={5.5} decay={2} />
       <pointLight position={[-7.2, 2.05, -1.35]} intensity={0.46} color="#6b90a7" distance={6.8} decay={2} />
+      <pointLight position={[-8.25, 2.55, 1.45]} intensity={1.65} color="#ffe3ba" distance={7.2} decay={1.8} />
+      <pointLight position={[-8.35, 2.9, 1.4]} intensity={7.5} color="#fff6de" distance={11} decay={1.35} />
+      <pointLight position={[-8.35, 1.1, 1.2]} intensity={3.6} color="#fff0cf" distance={8.5} decay={1.2} />
+      <rectAreaLight
+        position={[-8.35, 3.85, 1.25]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        width={2.6}
+        height={1.8}
+        intensity={18}
+        color="#fff8e6"
+      />
+
+      <group position={[-8.35, 0, 1.35]}>
+        <mesh position={[-1.34, 0.48, -0.52]} castShadow receiveShadow>
+          <boxGeometry args={[0.56, 0.96, 0.62]} />
+          <primitive object={kitchenCabinet.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-1.34, 1.02, -0.52]} castShadow receiveShadow>
+          <boxGeometry args={[0.58, 0.12, 0.66]} />
+          <primitive object={kitchenCounter.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-1.34, 0.95, -0.52]} castShadow>
+          <boxGeometry args={[0.38, 0.08, 0.38]} />
+          <primitive object={kitchenDark.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-1.34, 0.86, -0.52]} castShadow>
+          <boxGeometry args={[0.1, 0.12, 0.1]} />
+          <primitive object={kitchenDark.clone()} attach="material" />
+        </mesh>
+
+        <mesh position={[-0.72, 0.48, -0.52]} castShadow receiveShadow>
+          <boxGeometry args={[0.64, 0.96, 0.62]} />
+          <primitive object={kitchenCabinet.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-0.72, 1.02, -0.52]} castShadow receiveShadow>
+          <boxGeometry args={[0.68, 0.12, 0.66]} />
+          <primitive object={kitchenCounter.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-0.72, 0.96, -0.52]} castShadow receiveShadow>
+          <boxGeometry args={[0.38, 0.06, 0.24]} />
+          <primitive object={kitchenMetal.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-0.72, 0.88, -0.52]} castShadow>
+          <boxGeometry args={[0.08, 0.2, 0.08]} />
+          <primitive object={kitchenMetal.clone()} attach="material" />
+        </mesh>
+
+        <mesh position={[-0.02, 0.44, -0.52]} castShadow receiveShadow>
+          <boxGeometry args={[0.72, 0.88, 0.62]} />
+          <primitive object={kitchenCabinet.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-0.02, 0.96, -0.52]} castShadow receiveShadow>
+          <boxGeometry args={[0.74, 0.1, 0.66]} />
+          <primitive object={kitchenCounter.clone()} attach="material" />
+        </mesh>
+
+        <mesh position={[0.06, 0.46, 0.46]} castShadow receiveShadow>
+          <boxGeometry args={[1.24, 0.1, 0.8]} />
+          <primitive object={kitchenWood.clone()} attach="material" />
+        </mesh>
+        <mesh position={[0.06, 0.23, 0.18]} castShadow>
+          <boxGeometry args={[0.09, 0.46, 0.09]} />
+          <primitive object={kitchenDark.clone()} attach="material" />
+        </mesh>
+        <mesh position={[0.06, 0.23, 0.74]} castShadow>
+          <boxGeometry args={[0.09, 0.46, 0.09]} />
+          <primitive object={kitchenDark.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-0.44, 0.23, 0.18]} castShadow>
+          <boxGeometry args={[0.09, 0.46, 0.09]} />
+          <primitive object={kitchenDark.clone()} attach="material" />
+        </mesh>
+        <mesh position={[-0.44, 0.23, 0.74]} castShadow>
+          <boxGeometry args={[0.09, 0.46, 0.09]} />
+          <primitive object={kitchenDark.clone()} attach="material" />
+        </mesh>
+
+        <KitchenChair position={[0.78, 0, 0.24]} rotation={-0.22} />
+        <KitchenChair position={[0.78, 0, 0.66]} rotation={-0.12} />
+        <KitchenChair position={[-0.74, 0, 0.26]} rotation={0.12} />
+        <KitchenChair position={[-0.74, 0, 0.66]} rotation={0.18} />
+      </group>
+    </group>
+  );
+}
+
+function KitchenChair({ position, rotation }: { position: [number, number, number]; rotation: number }) {
+  const wood = useRoughMaterial("#886f55", "#302114", 0.82, "wood");
+  const dark = useRoughMaterial("#2a2f33", "#090c0f", 0.84, "none");
+
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      <mesh position={[0, 0.24, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.34, 0.05, 0.34]} />
+        <primitive object={wood} attach="material" />
+      </mesh>
+      <mesh position={[0, 0.53, -0.14]} castShadow receiveShadow>
+        <boxGeometry args={[0.34, 0.58, 0.05]} />
+        <primitive object={wood.clone()} attach="material" />
+      </mesh>
+      <mesh position={[0.13, 0.12, 0.13]} castShadow>
+        <boxGeometry args={[0.05, 0.24, 0.05]} />
+        <primitive object={dark} attach="material" />
+      </mesh>
+      <mesh position={[-0.13, 0.12, 0.13]} castShadow>
+        <boxGeometry args={[0.05, 0.24, 0.05]} />
+        <primitive object={dark.clone()} attach="material" />
+      </mesh>
+      <mesh position={[0.13, 0.12, -0.13]} castShadow>
+        <boxGeometry args={[0.05, 0.24, 0.05]} />
+        <primitive object={dark.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-0.13, 0.12, -0.13]} castShadow>
+        <boxGeometry args={[0.05, 0.24, 0.05]} />
+        <primitive object={dark.clone()} attach="material" />
+      </mesh>
     </group>
   );
 }
@@ -731,13 +973,17 @@ function Bed() {
 function Furniture({
   phoneOn,
   phoneSelected,
+  phoneInInventory,
   onSelectPhone,
   onTurnOnPhone,
+  onPickupPhone,
 }: {
   phoneOn: boolean;
   phoneSelected: boolean;
+  phoneInInventory: boolean;
   onSelectPhone: () => void;
   onTurnOnPhone: () => void;
+  onPickupPhone: () => void;
 }) {
   const wood = useRoughMaterial("#2a211b", "#0d0a08", 0.88, "wood");
   const darkMetal = useRoughMaterial("#111415", "#050606", 0.8);
@@ -806,14 +1052,17 @@ function Furniture({
           <boxGeometry args={[0.6, 0.07, 0.52]} />
           <primitive object={wood.clone()} attach="material" />
         </mesh>
-        <Suspense fallback={null}>
-          <SmallPhone
-            selected={phoneSelected}
-            poweredOn={phoneOn}
-            onSelect={onSelectPhone}
-            onTurnOn={onTurnOnPhone}
-          />
-        </Suspense>
+        {!phoneInInventory && (
+          <Suspense fallback={null}>
+            <SmallPhone
+              selected={phoneSelected}
+              poweredOn={phoneOn}
+              onSelect={onSelectPhone}
+              onTurnOn={onTurnOnPhone}
+              onPickup={onPickupPhone}
+            />
+          </Suspense>
+        )}
       </group>
     </group>
   );
@@ -866,21 +1115,25 @@ function SmallPhone({
   poweredOn,
   onSelect,
   onTurnOn,
+  onPickup,
 }: {
   selected: boolean;
   poweredOn: boolean;
   onSelect: () => void;
   onTurnOn: () => void;
+  onPickup: () => void;
 }) {
   const { scene } = useGLTF(phoneModelPath);
   const [hovered, setHovered] = useState(false);
+  const autoOpenUsed = useRef(false);
 
   useEffect(() => {
-    if (!hovered || poweredOn) {
+    if (!hovered || poweredOn || autoOpenUsed.current) {
       return;
     }
 
     const timer = window.setTimeout(() => {
+      autoOpenUsed.current = true;
       onTurnOn();
     }, 500);
 
@@ -962,6 +1215,10 @@ function SmallPhone({
         if (!selected) {
           onSelect();
         }
+      }}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        onPickup();
       }}
     >
       <primitive object={phone} />
@@ -1382,20 +1639,214 @@ function playPhoneOpenClick() {
   const oscillator = context.createOscillator();
   const gain = context.createGain();
 
-  oscillator.type = "triangle";
-  oscillator.frequency.setValueAtTime(1720, now);
-  oscillator.frequency.exponentialRampToValueAtTime(1400, now + 0.012);
+  oscillator.type = "square";
+  oscillator.frequency.setValueAtTime(1240, now);
+  oscillator.frequency.exponentialRampToValueAtTime(880, now + 0.02);
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.09, now + 0.0016);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
+  gain.gain.exponentialRampToValueAtTime(0.26, now + 0.001);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.048);
 
   oscillator.connect(gain);
   gain.connect(context.destination);
   oscillator.start(now);
-  oscillator.stop(now + 0.024);
+  oscillator.stop(now + 0.052);
   oscillator.onended = () => {
     context.close().catch(() => {});
+  };
+}
+
+function playPhoneUnlockClick() {
+  const AudioContextImpl =
+    window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextImpl) return;
+
+  const context = new AudioContextImpl();
+  const now = context.currentTime;
+
+  const oscillator = context.createOscillator();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(980, now);
+  oscillator.frequency.exponentialRampToValueAtTime(1240, now + 0.04);
+
+  const gain = context.createGain();
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.11, now + 0.003);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.07);
+  oscillator.onended = () => {
+    context.close().catch(() => {});
+  };
+}
+
+function playPhoneTapClick() {
+  const AudioContextImpl =
+    window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextImpl) return;
+
+  const context = new AudioContextImpl();
+  const now = context.currentTime;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(860, now);
+  oscillator.frequency.exponentialRampToValueAtTime(720, now + 0.018);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.08, now + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.034);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.038);
+  oscillator.onended = () => {
+    context.close().catch(() => {});
+  };
+}
+
+function playPhoneCloseClick() {
+  const AudioContextImpl =
+    window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextImpl) return;
+
+  const context = new AudioContextImpl();
+  const now = context.currentTime;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+
+  oscillator.type = "square";
+  oscillator.frequency.setValueAtTime(760, now);
+  oscillator.frequency.exponentialRampToValueAtTime(520, now + 0.03);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.09, now + 0.0015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.042);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.048);
+  oscillator.onended = () => {
+    context.close().catch(() => {});
+  };
+}
+
+function playPhonePickupClick() {
+  const AudioContextImpl =
+    window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextImpl) return;
+
+  const context = new AudioContextImpl();
+  const now = context.currentTime;
+
+  const oscA = context.createOscillator();
+  const oscB = context.createOscillator();
+  const gain = context.createGain();
+
+  oscA.type = "sine";
+  oscA.frequency.setValueAtTime(560, now);
+  oscA.frequency.exponentialRampToValueAtTime(820, now + 0.06);
+
+  oscB.type = "triangle";
+  oscB.frequency.setValueAtTime(280, now);
+  oscB.frequency.exponentialRampToValueAtTime(410, now + 0.06);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.12, now + 0.003);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+
+  oscA.connect(gain);
+  oscB.connect(gain);
+  gain.connect(context.destination);
+  oscA.start(now);
+  oscB.start(now);
+  oscA.stop(now + 0.09);
+  oscB.stop(now + 0.09);
+  oscA.onended = () => {
+    context.close().catch(() => {});
+  };
+}
+
+function playSocialFlickerSuspense(durationMs: number) {
+  const AudioContextImpl =
+    window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextImpl) return () => {};
+
+  const context = new AudioContextImpl();
+  const now = context.currentTime;
+  const duration = Math.max(durationMs / 1000, 0.2);
+
+  const master = context.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.16, now + 0.04);
+  master.gain.setValueAtTime(0.16, now + duration * 0.72);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  master.connect(context.destination);
+
+  const oscA = context.createOscillator();
+  oscA.type = "sawtooth";
+  oscA.frequency.setValueAtTime(342, now);
+  oscA.frequency.exponentialRampToValueAtTime(272, now + duration * 0.88);
+
+  const oscB = context.createOscillator();
+  oscB.type = "triangle";
+  oscB.frequency.setValueAtTime(171, now);
+  oscB.frequency.exponentialRampToValueAtTime(134, now + duration * 0.92);
+
+  const tremolo = context.createOscillator();
+  tremolo.type = "square";
+  tremolo.frequency.setValueAtTime(13.5, now);
+
+  const tremoloDepth = context.createGain();
+  tremoloDepth.gain.setValueAtTime(0.058, now);
+
+  const toneGain = context.createGain();
+  toneGain.gain.setValueAtTime(0.062, now);
+
+  const filter = context.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(1480, now);
+  filter.frequency.exponentialRampToValueAtTime(980, now + duration);
+
+  tremolo.connect(tremoloDepth);
+  tremoloDepth.connect(toneGain.gain);
+
+  oscA.connect(toneGain);
+  oscB.connect(toneGain);
+  toneGain.connect(filter);
+  filter.connect(master);
+
+  oscA.start(now);
+  oscB.start(now);
+  tremolo.start(now);
+
+  const stopAt = now + duration + 0.03;
+  oscA.stop(stopAt);
+  oscB.stop(stopAt);
+  tremolo.stop(stopAt);
+
+  let closed = false;
+  const closeContext = () => {
+    if (closed) return;
+    closed = true;
+    context.close().catch(() => {});
+  };
+
+  oscA.onended = closeContext;
+
+  return () => {
+    if (closed) return;
+    const releaseNow = context.currentTime;
+    master.gain.cancelScheduledValues(releaseNow);
+    master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), releaseNow);
+    master.gain.exponentialRampToValueAtTime(0.0001, releaseNow + 0.03);
+    window.setTimeout(closeContext, 40);
   };
 }
 
@@ -1426,6 +1877,29 @@ async function sendUnlockText(phoneNumber: string) {
   }
 }
 
+async function sendInventoryEvent(item: string, action: string) {
+  if (!inventoryWebhookUrl) return;
+
+  try {
+    const payload = new URLSearchParams({
+      item,
+      action,
+    });
+
+    const response = await fetch(inventoryWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: payload.toString(),
+    });
+
+    if (!response.ok) {
+      console.warn("Failed to send inventory event:", response.status);
+    }
+  } catch (error) {
+    console.warn("Failed to send inventory event:", error);
+  }
+}
+
 function PhonePanelOverlay({
   screen,
   phoneNumber,
@@ -1447,6 +1921,7 @@ function PhonePanelOverlay({
   const [progress, setProgress] = useState(0);
   const [trackWidth, setTrackWidth] = useState(0);
   const [blackoutActive, setBlackoutActive] = useState(false);
+  const [blackoutFlickerPhase, setBlackoutFlickerPhase] = useState(false);
   const [socialPostCount, setSocialPostCount] = useState(30);
   const trackRef = useRef<HTMLDivElement>(null);
   const socialFeedRef = useRef<HTMLDivElement>(null);
@@ -1495,6 +1970,7 @@ function PhonePanelOverlay({
   useEffect(() => {
     if (screen !== "social") {
       setBlackoutActive(false);
+      setBlackoutFlickerPhase(false);
       setSocialPostCount(30);
     }
   }, [screen]);
@@ -1503,27 +1979,56 @@ function PhonePanelOverlay({
     if (screen !== "social") return;
     const blackTimer = window.setTimeout(() => {
       setBlackoutActive(true);
+      setBlackoutFlickerPhase(true);
     }, 10000);
     return () => window.clearTimeout(blackTimer);
   }, [screen]);
 
   useEffect(() => {
-    if (screen !== "social" || !blackoutActive) return;
+    if (screen !== "social" || !blackoutFlickerPhase) return;
+    const flickerPhaseTimer = window.setTimeout(() => {
+      setBlackoutFlickerPhase(false);
+    }, 2000);
+    return () => {
+      window.clearTimeout(flickerPhaseTimer);
+    };
+  }, [blackoutFlickerPhase, screen]);
+
+  useEffect(() => {
+    if (screen !== "social" || !blackoutFlickerPhase) return;
+    const stopSound = playSocialFlickerSuspense(2000);
+    return () => {
+      stopSound();
+    };
+  }, [blackoutFlickerPhase, screen]);
+
+  useEffect(() => {
+    if (screen !== "social" || !blackoutActive || blackoutFlickerPhase) return;
     const closeTimer = window.setTimeout(() => {
       onCloseAndReturn();
-    }, 5000);
+    }, 1000);
     return () => {
       window.clearTimeout(closeTimer);
     };
-  }, [blackoutActive, onCloseAndReturn, screen]);
+  }, [blackoutActive, blackoutFlickerPhase, onCloseAndReturn, screen]);
 
   const knobTravel = Math.max((trackWidth || 1) - 56, 0);
   const knobX = knobTravel * progress;
   const socialPosts = Array.from({ length: socialPostCount }, (_, index) => index + 1);
 
   return (
-    <div className="phone-focus-overlay">
-      <div className="phone-focus-panel">
+    <div
+      className="phone-focus-overlay"
+      onPointerDown={() => {
+        onCloseAndReturn();
+      }}
+    >
+      <div
+        className="phone-focus-panel"
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+      >
         {screen === "lock" ? (
           <div className="phone-lock-screen">
             <div className="phone-focus-status">
@@ -1555,6 +2060,7 @@ function PhonePanelOverlay({
                 style={{ transform: `translateX(${knobX}px)` }}
                 onPointerDown={(event) => {
                   event.preventDefault();
+                  playPhoneTapClick();
                   setDragging(true);
                 }}
                 aria-label="Slide to unlock"
@@ -1622,7 +2128,7 @@ function PhonePanelOverlay({
             </div>
             <div className="phone-home-number">{phoneNumber || "No phone number set"}</div>
           </div>
-        ) : (
+        ) : screen === "social" ? (
           <div className="phone-social">
             <div className="phone-social-header">For You</div>
             <div
@@ -1675,10 +2181,22 @@ function PhonePanelOverlay({
             </div>
             {blackoutActive && (
               <div className="phone-social-blackout">
-                <div className="phone-social-reflection" aria-hidden="true" />
+                {blackoutFlickerPhase && (
+                  <div className="phone-social-reflection" aria-hidden="true">
+                    <img
+                      src="/reflections/monster-sad.jpeg"
+                      alt=""
+                      className="phone-social-reflection-image"
+                      loading="eager"
+                      decoding="sync"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
+        ) : (
+          <div className="phone-black-screen" aria-label="Phone screen off" />
         )}
       </div>
     </div>
