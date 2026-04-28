@@ -1405,7 +1405,16 @@ function PhonePanelOverlay({
     <div className="phone-focus-overlay">
       <div className="phone-focus-panel">
         {screen === "lock" ? (
-          <>
+          <div className="phone-lock-screen">
+            <div className="phone-focus-status">
+              <span>9:41</span>
+              <div className="phone-focus-island" aria-hidden="true" />
+              <div className="phone-focus-status-icons" aria-hidden="true">
+                <span className="signal-bars" />
+                <span className="wifi-icon" />
+                <span className="battery-icon" />
+              </div>
+            </div>
             <div className="phone-focus-time">2:47</div>
             <div className="phone-focus-day">Monday</div>
             <div className={`phone-focus-photo${lockscreenImageUrl ? " has-image" : ""}`}>
@@ -1431,23 +1440,72 @@ function PhonePanelOverlay({
                 aria-label="Slide to unlock"
               />
             </div>
-          </>
+          </div>
         ) : (
           <div className="phone-home">
-            <div className="phone-home-header">
-              <div className="phone-home-title">Home</div>
-              <div className="phone-home-number">{phoneNumber || "No phone number set"}</div>
+            <div className="phone-home-top">
+              <div className="phone-home-clock">09:41</div>
+              <div className="phone-home-top-icons" aria-hidden="true">
+                <span className="signal-bars" />
+                <span className="wifi-icon" />
+                <span className="battery-icon" />
+              </div>
             </div>
-            <div
-              className="phone-home-feed"
-            >
-              <div className="phone-home-card">Messages</div>
-              <div className="phone-home-card">Photos</div>
-              <div className="phone-home-card">Notes</div>
-              <div className="phone-home-card">Calendar</div>
-              <div className="phone-home-card">Music</div>
-              <div className="phone-home-card">Settings</div>
+            <div className="phone-home-grid">
+              <div className="phone-home-widget">
+                <div className="phone-home-widget-ring" aria-hidden="true" />
+                <div className="phone-home-widget-percent">100%</div>
+              </div>
+              <div className="phone-home-app">
+                <div className="phone-home-icon icon-calendar">9</div>
+                <div className="phone-home-label">Calendar</div>
+              </div>
+              <div className="phone-home-app">
+                <div className="phone-home-icon icon-photos" />
+                <div className="phone-home-label">Photos</div>
+              </div>
+              <div className="phone-home-app">
+                <div className="phone-home-icon icon-tv">tv</div>
+                <div className="phone-home-label">TV</div>
+              </div>
+              <div className="phone-home-app">
+                <div className="phone-home-icon icon-camera" />
+                <div className="phone-home-label">Camera</div>
+              </div>
+              <div className="phone-home-app">
+                <div className="phone-home-icon icon-maps" />
+                <div className="phone-home-label">Maps</div>
+              </div>
+              <div className="phone-home-app">
+                <div className="phone-home-icon icon-settings" />
+                <div className="phone-home-label">Settings</div>
+              </div>
+              <div className="phone-home-app">
+                <div className="phone-home-icon icon-mail">6,608</div>
+                <div className="phone-home-label">Mail</div>
+              </div>
+              <div className="phone-home-app">
+                <div className="phone-home-icon icon-reminders" />
+                <div className="phone-home-label">Reminders</div>
+              </div>
             </div>
+            <div className="phone-home-dots" aria-hidden="true">
+              <span className="dot active" />
+              <span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
+            </div>
+            <div className="phone-home-dock">
+              <div className="phone-home-dock-icon icon-phone" />
+              <div className="phone-home-dock-icon icon-safari" />
+              <div className="phone-home-dock-icon icon-messages" />
+              <div className="phone-home-dock-icon icon-music" />
+            </div>
+            <div className="phone-home-number">{phoneNumber || "No phone number set"}</div>
           </div>
         )}
       </div>

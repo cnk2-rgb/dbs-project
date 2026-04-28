@@ -214,38 +214,108 @@ button {
 .phone-focus-panel {
   width: min(320px, 72vw);
   aspect-ratio: 9 / 19;
-  padding: 24px 18px 22px;
-  border-radius: 24px;
-  border: 1px solid rgba(210, 230, 240, 0.32);
+  padding: 0;
+  border-radius: 36px;
+  border: 1px solid rgba(215, 228, 239, 0.38);
   background:
-    linear-gradient(180deg, rgba(178, 215, 235, 0.42) 0%, rgba(132, 174, 198, 0.34) 32%, rgba(95, 132, 154, 0.42) 100%),
-    rgba(180, 214, 232, 0.18);
+    linear-gradient(180deg, rgba(115, 143, 163, 0.42) 0%, rgba(78, 102, 124, 0.46) 46%, rgba(48, 64, 80, 0.54) 100%),
+    rgba(124, 150, 170, 0.22);
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.52),
-    0 0 42px rgba(141, 198, 228, 0.22);
-  backdrop-filter: blur(6px);
+    0 0 42px rgba(141, 198, 228, 0.18);
+  backdrop-filter: blur(7px);
   pointer-events: auto;
+  overflow: hidden;
+}
+
+.phone-lock-screen {
+  height: 100%;
+  padding: 10px 14px 16px;
+}
+
+.phone-focus-status {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  color: rgba(248, 250, 255, 0.94);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 4px 6px;
+}
+
+.phone-focus-island {
+  width: 96px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.88);
+  justify-self: center;
+}
+
+.phone-focus-status-icons {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.signal-bars,
+.wifi-icon,
+.battery-icon {
+  display: inline-block;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(246, 249, 255, 0.95);
+}
+
+.signal-bars {
+  width: 11px;
+  clip-path: polygon(0 100%, 16% 100%, 16% 74%, 36% 74%, 36% 52%, 56% 52%, 56% 28%, 78% 28%, 78% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.wifi-icon {
+  width: 12px;
+  clip-path: polygon(0 70%, 16% 54%, 50% 24%, 84% 54%, 100% 70%, 80% 88%, 50% 58%, 20% 88%);
+}
+
+.battery-icon {
+  width: 18px;
+  border-radius: 3px;
+  position: relative;
+}
+
+.battery-icon::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: 2px;
+  width: 2px;
+  height: 6px;
+  border-radius: 1px;
+  background: rgba(246, 249, 255, 0.95);
 }
 
 .phone-focus-time {
   color: rgba(236, 245, 251, 0.98);
-  font-size: 56px;
+  font-size: 58px;
   line-height: 1;
   text-align: center;
+  margin-top: 6px;
+  font-weight: 300;
 }
 
 .phone-focus-day {
   margin-top: 8px;
   color: rgba(224, 237, 246, 0.92);
-  font-size: 20px;
+  font-size: 18px;
   text-align: center;
 }
 
 .phone-focus-photo {
-  margin: 26px auto 0;
-  width: min(248px, 100%);
-  height: 58%;
-  border: 1px solid rgba(201, 225, 240, 0.34);
+  margin: 20px auto 0;
+  width: min(262px, 100%);
+  height: 56%;
+  border: 1px solid rgba(201, 225, 240, 0.26);
+  border-radius: 24px;
   background:
     radial-gradient(circle at 50% 24%, rgba(171, 201, 220, 0.55) 0%, rgba(127, 157, 178, 0.36) 48%, rgba(72, 95, 116, 0.28) 100%),
     rgba(54, 78, 95, 0.42);
@@ -288,11 +358,11 @@ button {
 
 .phone-focus-slider {
   position: relative;
-  margin-top: 18px;
-  height: 54px;
+  margin-top: 14px;
+  height: 52px;
   border-radius: 30px;
-  border: 1px solid rgba(209, 225, 236, 0.32);
-  background: rgba(18, 31, 41, 0.38);
+  border: 1px solid rgba(224, 234, 242, 0.28);
+  background: rgba(14, 21, 28, 0.42);
   overflow: hidden;
 }
 
@@ -327,61 +397,194 @@ button {
 
 .phone-home {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 10px 12px;
+  background:
+    radial-gradient(circle at 84% 18%, rgba(150, 248, 255, 0.28) 0%, rgba(150, 248, 255, 0) 38%),
+    radial-gradient(circle at 14% 28%, rgba(112, 192, 243, 0.4) 0%, rgba(112, 192, 243, 0) 34%),
+    radial-gradient(circle at 36% 66%, rgba(140, 245, 196, 0.3) 0%, rgba(140, 245, 196, 0) 44%),
+    linear-gradient(158deg, #79c7dd 0%, #1e589c 34%, #0f316e 68%, #1f238f 100%);
+}
+
+.phone-home-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #f6fcff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 4px 0;
+}
+
+.phone-home-top-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.phone-home-grid {
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 8px;
+  padding: 4px 2px 0;
 }
 
-.phone-home-header {
-  padding: 4px 4px 0;
+.phone-home-widget {
+  grid-column: span 2;
+  height: 115px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(156, 232, 245, 0.95), rgba(168, 244, 223, 0.92));
+  position: relative;
+  overflow: hidden;
 }
 
-.phone-home-title {
-  color: rgba(233, 244, 251, 0.98);
+.phone-home-widget-ring {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  width: 44px;
+  height: 44px;
+  border: 7px solid #5bcf67;
+  border-radius: 50%;
+}
+
+.phone-home-widget-percent {
+  position: absolute;
+  left: 14px;
+  bottom: 8px;
+  color: #081019;
   font-size: 22px;
+  font-weight: 500;
 }
 
-.phone-home-number {
-  color: rgba(212, 228, 239, 0.86);
-  font-size: 12px;
-  margin-top: 2px;
-}
-
-.phone-home-feed {
-  border: 1px solid rgba(211, 228, 238, 0.28);
-  background: rgba(16, 25, 32, 0.26);
-  overflow-y: auto;
-  padding: 10px;
+.phone-home-app {
   display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+.phone-home-icon {
+  width: 50px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.phone-home-label {
+  color: #eef8ff;
+  font-size: 9px;
+  text-align: center;
+}
+
+.icon-calendar {
+  background: #f9f9fb;
+  color: #111;
+  font-size: 25px;
+}
+
+.icon-photos {
+  background: conic-gradient(
+    from 0deg,
+    #f23e58 0deg 45deg,
+    #f6b52f 45deg 90deg,
+    #b6d940 90deg 135deg,
+    #4bbf8f 135deg 180deg,
+    #4f8fe2 180deg 225deg,
+    #7f6ad8 225deg 270deg,
+    #bf5ba2 270deg 315deg,
+    #e56d5c 315deg 360deg
+  );
+}
+
+.icon-tv {
+  background: linear-gradient(180deg, #262831, #06070b);
+  text-transform: uppercase;
+  font-size: 16px;
+}
+
+.icon-camera {
+  background: linear-gradient(180deg, #f0f0f3, #a8a8b1);
+}
+
+.icon-maps {
+  background: linear-gradient(135deg, #66d776, #4f90ef 52%, #f3cf3b);
+}
+
+.icon-settings {
+  background: linear-gradient(180deg, #d8dbe1, #7d848f);
+}
+
+.icon-mail {
+  background: linear-gradient(180deg, #4f9dff, #6fd4ff);
+  border: 3px solid rgba(255, 86, 70, 0.95);
+  font-size: 7px;
+}
+
+.icon-reminders {
+  background: linear-gradient(180deg, #ffffff, #e6e8ee);
+}
+
+.phone-home-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(238, 247, 252, 0.44);
+}
+
+.dot.active {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.phone-home-dock {
+  margin-top: auto;
+  border-radius: 18px;
+  background: rgba(170, 190, 243, 0.38);
+  border: 1px solid rgba(224, 236, 246, 0.2);
+  padding: 7px 8px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
-.phone-home-card {
-  min-height: 56px;
-  border: 1px solid rgba(212, 228, 236, 0.22);
-  background: rgba(214, 235, 248, 0.1);
-  color: rgba(226, 240, 248, 0.92);
-  display: grid;
-  align-items: center;
-  padding: 0 12px;
+.phone-home-dock-icon {
+  width: 50px;
+  aspect-ratio: 1;
+  border-radius: 14px;
 }
 
-.phone-home-chat {
-  min-height: 62px;
-  border: 1px solid rgba(212, 228, 236, 0.24);
-  background: rgba(16, 25, 32, 0.34);
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+.icon-phone {
+  background: linear-gradient(180deg, #86f085, #55d56b);
 }
 
-.phone-home-bubble {
-  max-width: 70%;
-  padding: 8px 10px;
-  border-radius: 10px;
-  color: #f2f8fc;
-  background: rgba(85, 156, 212, 0.8);
+.icon-safari {
+  background: linear-gradient(180deg, #ffffff, #f6f8fb);
+}
+
+.icon-messages {
+  background: linear-gradient(180deg, #84eb85, #54d366);
+}
+
+.icon-music {
+  background: linear-gradient(180deg, #ff6682, #d73f52);
+}
+
+.phone-home-number {
+  color: rgba(226, 238, 247, 0.84);
+  font-size: 10px;
+  text-align: center;
+  margin-top: 2px;
 }
 
 @media (max-width: 640px) {
