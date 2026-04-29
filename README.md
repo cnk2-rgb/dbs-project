@@ -6,6 +6,12 @@ A first-person psychological horror browser game prototype.
 
 Version 1 starts with a fixed, lying-in-bed view of a dark bedroom. The player can open their eyes and look around with the mouse or touch, but cannot move yet.
 
+## Planning Docs
+
+- `PROJECT_PROPOSAL.md` - game concept and scope.
+- `research.md` - tech stack research and recommendations.
+- `INSTAGRAM_REALITY_CHECK.md` - execution plan for validating Instagram vs Google for location-based images, including required API keys/tokens.
+
 ## Commands
 
 ```sh

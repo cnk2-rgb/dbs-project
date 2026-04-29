@@ -73,7 +73,21 @@ test("social feed click triggers blackout then closes panel", async ({ page }) =
 
   await expect(page.locator(".phone-social-blackout")).toBeVisible({ timeout: 13_000 });
   await expect(page.locator(".phone-focus-panel")).toBeHidden({ timeout: 16_000 });
+  await expect(page.getByText("use WASD to move")).toBeVisible({ timeout: 4_000 });
   await expect(page.locator(".post-phone-dialogue")).toBeVisible({ timeout: 4_000 });
+});
+
+test("skip intro lets player pick up phone instead of opening panel", async ({ page }) => {
+  test.setTimeout(45_000);
+  await page.goto("/?e2e=1");
+  await page.getByRole("button", { name: "Skip intro" }).click();
+  await expect(page.getByRole("button", { name: "Interact phone prop (e2e)" })).toBeVisible({ timeout: 8_000 });
+
+  await page.getByRole("button", { name: "Interact phone prop (e2e)" }).click();
+  await expect(page.getByText("... I should take my phone with me just in case")).toBeVisible({ timeout: 3_000 });
+  await expect(page.getByText("press o to open phone")).toBeVisible({ timeout: 3_000 });
+  await expect(page.locator(".phone-focus-panel")).toBeHidden();
+  await expect(page.getByText("Click and drag to look around")).toBeHidden();
 });
 
 test("directives do not overlap and keep spacing from phone panel", async ({ page }) => {

@@ -43,6 +43,12 @@ type DragState = {
 
 type IntroPhase = "asleep" | "flicker" | "pan" | "active";
 type PhonePanelScreen = "lock" | "home" | "social" | "black" | null;
+type YouTubePlayer = {
+  playVideo: () => void;
+  stopVideo: () => void;
+  mute: () => void;
+  unMute: () => void;
+};
 const smsWebhookUrl = (import.meta.env.VITE_SMS_WEBHOOK_URL ?? "").trim();
 const smsFromNumber = (import.meta.env.VITE_TWILIO_FROM_NUMBER ?? "").trim();
 const inventoryWebhookUrl = (import.meta.env.VITE_INVENTORY_WEBHOOK_URL ?? "").trim();
@@ -73,6 +79,116 @@ function App() {
   const [phoneOpenHintVisible, setPhoneOpenHintVisible] = useState(false);
   const [closePhoneHintVisible, setClosePhoneHintVisible] = useState(false);
   const [hasOpenedInventoryPhone, setHasOpenedInventoryPhone] = useState(false);
+  const [skipIntroUsed, setSkipIntroUsed] = useState(false);
+  const youtubePlayerRef = useRef<YouTubePlayer | null>(null);
+  const youtubeReadyRef = useRef(false);
+
+  const collectPhoneFromTable = ({
+    showFollowupDialogue,
+    unlockMovement,
+  }: {
+    showFollowupDialogue: boolean;
+    unlockMovement: boolean;
+  }) => {
+    playPhonePickupClick();
+    setPhoneInInventory(true);
+    setPhoneOn(false);
+    setPhoneSelected(false);
+    setPhonePanelScreen(null);
+    setPhoneOpenHintVisible(true);
+    if (unlockMovement) {
+      setPhoneUnlocked(true);
+    }
+
+    if (showFollowupDialogue) {
+      setWakeDialogVisible(false);
+      setPostPhoneDialogueVisible(false);
+      setDoorDialogueVisible(false);
+      setPostPhoneDialogueShown(true);
+      setPostPhoneFollowupDialogueVisible(true);
+      window.setTimeout(() => {
+        setPostPhoneFollowupDialogueVisible(false);
+      }, 4200);
+    }
+
+    void sendInventoryEvent("phone", "collected");
+  };
+
+  const skipIntroToPhonePickup = () => {
+    setSkipIntroUsed(true);
+    setIsAwake(true);
+    setIntroPhase("active");
+    setHasInteracted(true);
+    setWakeDialogVisible(true);
+    window.setTimeout(() => {
+      setWakeDialogVisible(false);
+    }, 3600);
+  };
+
+  useEffect(() => {
+    const onYouTubeIframeAPIReady = () => {
+      const win = window as typeof window & {
+        YT?: {
+          Player: new (
+            elementId: string,
+            options: {
+              videoId: string;
+              playerVars?: Record<string, number>;
+              events?: { onReady?: () => void };
+            },
+          ) => YouTubePlayer;
+        };
+      };
+
+      if (!win.YT) return;
+      youtubePlayerRef.current = new win.YT.Player("landing-bg-music", {
+        videoId: "PLFVGwGQcB0",
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          rel: 0,
+        },
+        events: {
+          onReady: () => {
+            youtubeReadyRef.current = true;
+            if (!isAwake) {
+              youtubePlayerRef.current?.unMute();
+              youtubePlayerRef.current?.playVideo();
+            }
+          },
+        },
+      });
+    };
+
+    const win = window as typeof window & {
+      YT?: unknown;
+      onYouTubeIframeAPIReady?: () => void;
+    };
+
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    script.async = true;
+    document.body.appendChild(script);
+    win.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+
+    return () => {
+      win.onYouTubeIframeAPIReady = undefined;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!youtubeReadyRef.current || !youtubePlayerRef.current) return;
+    if (isAwake) {
+      youtubePlayerRef.current.stopVideo();
+      return;
+    }
+    youtubePlayerRef.current.unMute();
+    youtubePlayerRef.current.playVideo();
+  }, [isAwake]);
 
   useEffect(() => {
     const onFirstInteraction = () => {
@@ -196,6 +312,10 @@ function App() {
             phoneInInventory={phoneInInventory}
             doorOpen={doorOpen}
             onSelectPhone={() => {
+              if (skipIntroUsed) {
+                collectPhoneFromTable({ showFollowupDialogue: true, unlockMovement: true });
+                return;
+              }
               playPhoneTapClick();
               setPhoneSelected(true);
             }}
@@ -206,14 +326,9 @@ function App() {
               setPhonePanelScreen("lock");
             }}
             onPickupPhone={() => {
-              playPhonePickupClick();
-              setPhoneInInventory(true);
-              setPhoneOn(false);
-              setPhoneSelected(false);
-              setPhonePanelScreen(null);
-              setPhoneOpenHintVisible(true);
-              void sendInventoryEvent("phone", "collected");
+              collectPhoneFromTable({ showFollowupDialogue: skipIntroUsed, unlockMovement: skipIntroUsed });
             }}
+            skipIntroUsed={skipIntroUsed}
             onToggleDoor={() => {
               setDoorOpen((value) => {
                 const next = !value;
@@ -240,6 +355,7 @@ function App() {
 
       {!isAwake && (
         <div className="start-overlay">
+          <div id="landing-bg-music" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden", opacity: 0 }} />
           <div className="start-intake">
             <p className="start-directive">enter your phone number (optional)</p>
             <input
@@ -270,11 +386,15 @@ function App() {
             className="wake-button"
             type="button"
             onClick={() => {
+              setSkipIntroUsed(false);
               setIsAwake(true);
               setIntroPhase("flicker");
             }}
           >
             Open your eyes
+          </button>
+          <button className="wake-button skip-intro-button" type="button" onClick={skipIntroToPhonePickup}>
+            Skip intro
           </button>
         </div>
       )}
@@ -310,6 +430,12 @@ function App() {
         </div>
       )}
 
+      {isAwake && introPhase === "active" && !panelActive && phoneUnlocked && !phoneInInventory && (
+        <div className="look-hint" aria-live="polite">
+          use WASD to move • double click to interact
+        </div>
+      )}
+
       {isAwake && introPhase === "active" && phoneInInventory && phoneOpenHintVisible && !panelActive && (
         <div className="look-hint" aria-live="polite">
           press o to open phone
@@ -324,6 +450,21 @@ function App() {
 
       {e2eMode && isAwake && introPhase === "active" && (
         <>
+          <button
+            type="button"
+            className="e2e-open-phone"
+            style={{ top: 76 }}
+            onClick={() => {
+              if (skipIntroUsed) {
+                collectPhoneFromTable({ showFollowupDialogue: true, unlockMovement: true });
+                return;
+              }
+              playPhoneTapClick();
+              setPhoneSelected(true);
+            }}
+          >
+            Interact phone prop (e2e)
+          </button>
           <button
             type="button"
             className="e2e-open-phone"
@@ -409,6 +550,7 @@ function BedroomScene({
   onSelectPhone,
   onTurnOnPhone,
   onPickupPhone,
+  skipIntroUsed,
   onToggleDoor,
   inputLocked,
   returnToPhoneTick,
@@ -424,6 +566,7 @@ function BedroomScene({
   onSelectPhone: () => void;
   onTurnOnPhone: () => void;
   onPickupPhone: () => void;
+  skipIntroUsed: boolean;
   onToggleDoor: () => void;
   inputLocked: boolean;
   returnToPhoneTick: number;
@@ -464,6 +607,7 @@ function BedroomScene({
         onSelectPhone={onSelectPhone}
         onTurnOnPhone={onTurnOnPhone}
         onPickupPhone={onPickupPhone}
+        disablePhoneAutoOpen={skipIntroUsed}
       />
       <ScareDetails />
 
@@ -741,8 +885,8 @@ function HallwayWing() {
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6.75, 0.01, -1.4]} receiveShadow>
-        <planeGeometry args={[6.5, 2.4, 12, 4]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-7.9, 0.01, -1.4]} receiveShadow>
+        <planeGeometry args={[8.8, 2.4, 16, 4]} />
         <primitive object={hallwaySurface} attach="material" />
       </mesh>
 
@@ -764,55 +908,60 @@ function HallwayWing() {
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
 
+      <mesh position={[-12.28, 2.1, -1.4]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 2.4]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+
       <mesh position={[-9.98, 2.1, -1.4]} receiveShadow>
         <boxGeometry args={[0.14, 4.2, 2.4]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
 
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-6.75, 4.2, -1.4]} receiveShadow>
-        <planeGeometry args={[6.5, 2.4, 6, 2]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-7.9, 4.2, -1.4]} receiveShadow>
+        <planeGeometry args={[8.8, 2.4, 8, 2]} />
         <primitive object={hallwayCeiling} attach="material" />
       </mesh>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-8.35, 0.01, -4.1]} receiveShadow>
-        <planeGeometry args={[3.3, 3.0, 8, 8]} />
+        <planeGeometry args={[4.6, 4.4, 10, 10]} />
         <primitive object={hallwaySurface.clone()} attach="material" />
       </mesh>
-      <mesh position={[-8.35, 2.1, -5.6]} receiveShadow>
-        <boxGeometry args={[3.3, 4.2, 0.14]} />
+      <mesh position={[-8.35, 2.1, -6.3]} receiveShadow>
+        <boxGeometry args={[4.6, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <mesh position={[-9.98, 2.1, -4.1]} receiveShadow>
-        <boxGeometry args={[0.14, 4.2, 3.0]} />
+      <mesh position={[-10.65, 2.1, -4.1]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 4.4]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <mesh position={[-6.72, 2.1, -4.1]} receiveShadow>
-        <boxGeometry args={[0.14, 4.2, 3.0]} />
+      <mesh position={[-6.05, 2.1, -4.1]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 4.4]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[-8.35, 4.2, -4.1]} receiveShadow>
-        <planeGeometry args={[3.3, 3.0, 4, 4]} />
+        <planeGeometry args={[4.6, 4.4, 6, 6]} />
         <primitive object={hallwayCeiling.clone()} attach="material" />
       </mesh>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-8.35, 0.01, 1.3]} receiveShadow>
-        <planeGeometry args={[3.3, 3.0, 8, 8]} />
+        <planeGeometry args={[4.6, 4.4, 10, 10]} />
         <primitive object={hallwaySurface.clone()} attach="material" />
       </mesh>
-      <mesh position={[-8.35, 2.1, 2.8]} receiveShadow>
-        <boxGeometry args={[3.3, 4.2, 0.14]} />
+      <mesh position={[-8.35, 2.1, 3.5]} receiveShadow>
+        <boxGeometry args={[4.6, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <mesh position={[-9.98, 2.1, 1.3]} receiveShadow>
-        <boxGeometry args={[0.14, 4.2, 3.0]} />
+      <mesh position={[-10.65, 2.1, 1.3]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 4.4]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <mesh position={[-6.72, 2.1, 1.3]} receiveShadow>
-        <boxGeometry args={[0.14, 4.2, 3.0]} />
+      <mesh position={[-6.05, 2.1, 1.3]} receiveShadow>
+        <boxGeometry args={[0.14, 4.2, 4.4]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[-8.35, 4.2, 1.3]} receiveShadow>
-        <planeGeometry args={[3.3, 3.0, 4, 4]} />
+        <planeGeometry args={[4.6, 4.4, 6, 6]} />
         <primitive object={hallwayCeiling.clone()} attach="material" />
       </mesh>
 
@@ -832,7 +981,7 @@ function HallwayWing() {
         color="#fff8e6"
       />
 
-      <group position={[-8.35, 0, 1.35]}>
+      <group position={[-8.35, 0, 1.75]}>
         <mesh position={[-1.34, 0.48, -0.52]} castShadow receiveShadow>
           <boxGeometry args={[0.56, 0.96, 0.62]} />
           <primitive object={kitchenCabinet.clone()} attach="material" />
@@ -876,31 +1025,31 @@ function HallwayWing() {
           <primitive object={kitchenCounter.clone()} attach="material" />
         </mesh>
 
-        <mesh position={[0.06, 0.46, 0.46]} castShadow receiveShadow>
-          <boxGeometry args={[1.24, 0.1, 0.8]} />
+        <mesh position={[0.16, 0.46, 0.72]} castShadow receiveShadow>
+          <boxGeometry args={[1.46, 0.1, 0.92]} />
           <primitive object={kitchenWood.clone()} attach="material" />
         </mesh>
-        <mesh position={[0.06, 0.23, 0.18]} castShadow>
+        <mesh position={[0.16, 0.23, 0.4]} castShadow>
           <boxGeometry args={[0.09, 0.46, 0.09]} />
           <primitive object={kitchenDark.clone()} attach="material" />
         </mesh>
-        <mesh position={[0.06, 0.23, 0.74]} castShadow>
+        <mesh position={[0.16, 0.23, 1.04]} castShadow>
           <boxGeometry args={[0.09, 0.46, 0.09]} />
           <primitive object={kitchenDark.clone()} attach="material" />
         </mesh>
-        <mesh position={[-0.44, 0.23, 0.18]} castShadow>
+        <mesh position={[-0.42, 0.23, 0.4]} castShadow>
           <boxGeometry args={[0.09, 0.46, 0.09]} />
           <primitive object={kitchenDark.clone()} attach="material" />
         </mesh>
-        <mesh position={[-0.44, 0.23, 0.74]} castShadow>
+        <mesh position={[-0.42, 0.23, 1.04]} castShadow>
           <boxGeometry args={[0.09, 0.46, 0.09]} />
           <primitive object={kitchenDark.clone()} attach="material" />
         </mesh>
 
-        <KitchenChair position={[0.78, 0, 0.24]} rotation={-0.22} />
-        <KitchenChair position={[0.78, 0, 0.66]} rotation={-0.12} />
-        <KitchenChair position={[-0.74, 0, 0.26]} rotation={0.12} />
-        <KitchenChair position={[-0.74, 0, 0.66]} rotation={0.18} />
+        <KitchenChair position={[1.02, 0, 0.42]} rotation={-0.22} />
+        <KitchenChair position={[1.02, 0, 0.96]} rotation={-0.12} />
+        <KitchenChair position={[-0.96, 0, 0.44]} rotation={0.12} />
+        <KitchenChair position={[-0.96, 0, 0.96]} rotation={0.18} />
       </group>
     </group>
   );
@@ -977,6 +1126,7 @@ function Furniture({
   onSelectPhone,
   onTurnOnPhone,
   onPickupPhone,
+  disablePhoneAutoOpen,
 }: {
   phoneOn: boolean;
   phoneSelected: boolean;
@@ -984,6 +1134,7 @@ function Furniture({
   onSelectPhone: () => void;
   onTurnOnPhone: () => void;
   onPickupPhone: () => void;
+  disablePhoneAutoOpen: boolean;
 }) {
   const wood = useRoughMaterial("#2a211b", "#0d0a08", 0.88, "wood");
   const darkMetal = useRoughMaterial("#111415", "#050606", 0.8);
@@ -1057,6 +1208,7 @@ function Furniture({
             <SmallPhone
               selected={phoneSelected}
               poweredOn={phoneOn}
+              disableAutoOpen={disablePhoneAutoOpen}
               onSelect={onSelectPhone}
               onTurnOn={onTurnOnPhone}
               onPickup={onPickupPhone}
@@ -1116,19 +1268,21 @@ function SmallPhone({
   onSelect,
   onTurnOn,
   onPickup,
+  disableAutoOpen,
 }: {
   selected: boolean;
   poweredOn: boolean;
   onSelect: () => void;
   onTurnOn: () => void;
   onPickup: () => void;
+  disableAutoOpen: boolean;
 }) {
   const { scene } = useGLTF(phoneModelPath);
   const [hovered, setHovered] = useState(false);
   const autoOpenUsed = useRef(false);
 
   useEffect(() => {
-    if (!hovered || poweredOn || autoOpenUsed.current) {
+    if (disableAutoOpen || !hovered || poweredOn || autoOpenUsed.current) {
       return;
     }
 
@@ -1140,7 +1294,7 @@ function SmallPhone({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [hovered, poweredOn, onTurnOn]);
+  }, [disableAutoOpen, hovered, poweredOn, onTurnOn]);
 
   const lockscreenTexture = useMemo(() => createLockscreenTexture(), []);
   const screenOffMaterial = useMemo(
@@ -1611,8 +1765,8 @@ function clampGaze(
 }
 
 function constrainPlayerPosition(position: Vector3) {
-  position.x = MathUtils.clamp(position.x, -9.6, 3.2);
-  position.z = MathUtils.clamp(position.z, -5.7, 3.7);
+  position.x = MathUtils.clamp(position.x, -12.1, 3.2);
+  position.z = MathUtils.clamp(position.z, -6.4, 4.2);
 
   const inBedroom = position.x >= -3.2;
   const inHallTransition = position.x < -3.2 && position.x > -6.2;
@@ -1627,7 +1781,7 @@ function constrainPlayerPosition(position: Vector3) {
     return;
   }
 
-  position.z = MathUtils.clamp(position.z, -5.55, 2.75);
+  position.z = MathUtils.clamp(position.z, -6.2, 3.45);
 }
 
 function playPhoneOpenClick() {

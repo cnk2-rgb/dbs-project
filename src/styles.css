@@ -188,6 +188,23 @@ button {
   outline: none;
 }
 
+.skip-intro-button {
+  min-width: 132px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-color: rgba(156, 166, 173, 0.38);
+  color: rgba(184, 194, 202, 0.82);
+  background: rgba(6, 9, 12, 0.56);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.skip-intro-button:hover,
+.skip-intro-button:focus-visible {
+  border-color: rgba(188, 197, 205, 0.56);
+  background: rgba(12, 16, 20, 0.72);
+}
+
 .look-hint {
   position: absolute;
   left: 50%;
