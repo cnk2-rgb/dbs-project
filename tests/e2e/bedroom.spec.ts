@@ -84,7 +84,7 @@ test("skip intro lets player pick up phone instead of opening panel", async ({ p
   await expect(page.getByRole("button", { name: "Interact phone prop (e2e)" })).toBeVisible({ timeout: 8_000 });
 
   await page.getByRole("button", { name: "Interact phone prop (e2e)" }).click();
-  await expect(page.getByText("... I should take my phone with me just in case")).toBeVisible({ timeout: 3_000 });
+  await expect(page.getByText("I should take my phone with me just in case")).toBeVisible({ timeout: 3_000 });
   await expect(page.getByText("press o to open phone")).toBeVisible({ timeout: 3_000 });
   await expect(page.locator(".phone-focus-panel")).toBeHidden();
   await expect(page.getByText("Click and drag to look around")).toBeHidden();
