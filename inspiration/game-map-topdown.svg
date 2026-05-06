@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1000" viewBox="0 0 1500 1000">
+  <defs>
+    <style>
+      .bg { fill: #0f1418; }
+      .grid { stroke: #1a232b; stroke-width: 1; }
+      .room { fill: #152029; stroke: #2f4452; stroke-width: 2; }
+      .bedroom { fill: #1d1f22; stroke: #4c535b; stroke-width: 2; }
+      .hall { fill: #17232c; stroke: #3b5263; stroke-width: 2; }
+      .wall { stroke: #f2c96b; stroke-width: 8; stroke-linecap: round; }
+      .walllabel { fill: #ffd866; font: 700 20px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .roomlabel { fill: #d9e6ec; font: 700 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .legend { fill: #b9c8d3; font: 500 18px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .title { fill: #f2f6f8; font: 700 32px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .sub { fill: #9db3c2; font: 500 18px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1500" height="1000" />
+
+  <!-- Grid -->
+  <g opacity="0.45">
+    <line class="grid" x1="0" y1="100" x2="1500" y2="100" />
+    <line class="grid" x1="0" y1="200" x2="1500" y2="200" />
+    <line class="grid" x1="0" y1="300" x2="1500" y2="300" />
+    <line class="grid" x1="0" y1="400" x2="1500" y2="400" />
+    <line class="grid" x1="0" y1="500" x2="1500" y2="500" />
+    <line class="grid" x1="0" y1="600" x2="1500" y2="600" />
+    <line class="grid" x1="0" y1="700" x2="1500" y2="700" />
+    <line class="grid" x1="0" y1="800" x2="1500" y2="800" />
+    <line class="grid" x1="0" y1="900" x2="1500" y2="900" />
+    <line class="grid" x1="100" y1="0" x2="100" y2="1000" />
+    <line class="grid" x1="200" y1="0" x2="200" y2="1000" />
+    <line class="grid" x1="300" y1="0" x2="300" y2="1000" />
+    <line class="grid" x1="400" y1="0" x2="400" y2="1000" />
+    <line class="grid" x1="500" y1="0" x2="500" y2="1000" />
+    <line class="grid" x1="600" y1="0" x2="600" y2="1000" />
+    <line class="grid" x1="700" y1="0" x2="700" y2="1000" />
+    <line class="grid" x1="800" y1="0" x2="800" y2="1000" />
+    <line class="grid" x1="900" y1="0" x2="900" y2="1000" />
+    <line class="grid" x1="1000" y1="0" x2="1000" y2="1000" />
+    <line class="grid" x1="1100" y1="0" x2="1100" y2="1000" />
+    <line class="grid" x1="1200" y1="0" x2="1200" y2="1000" />
+    <line class="grid" x1="1300" y1="0" x2="1300" y2="1000" />
+    <line class="grid" x1="1400" y1="0" x2="1400" y2="1000" />
+  </g>
+
+  <!-- Rooms -->
+  <rect class="bedroom" x="925" y="200" width="350" height="400" />
+  <rect class="hall" x="260" y="330" width="760" height="300" />
+  <rect class="room" x="410" y="550" width="180" height="150" />
+  <rect class="room" x="602.5" y="232.5" width="160" height="160" />
+  <rect class="room" x="1145" y="517.5" width="160" height="160" />
+  <rect class="room" x="1315" y="537.5" width="160" height="160" />
+  <rect class="room" x="240" y="360" width="210" height="130" />
+
+  <!-- Walls -->
+  <g>
+    <line class="wall" x1="925" y1="600" x2="1275" y2="600" />     <!-- A -->
+    <line class="wall" x1="925" y1="600" x2="925" y2="500" />       <!-- B -->
+    <line class="wall" x1="925" y1="440" x2="925" y2="200" />       <!-- C -->
+    <line class="wall" x1="925" y1="500" x2="925" y2="440" />       <!-- D -->
+    <line class="wall" x1="1275" y1="600" x2="1275" y2="200" />     <!-- E -->
+
+    <line class="wall" x1="631" y1="595" x2="934" y2="595" />       <!-- F -->
+    <line class="wall" x1="760" y1="595" x2="835" y2="595" />       <!-- H -->
+    <line class="wall" x1="438" y1="359" x2="595" y2="359" />       <!-- J -->
+    <line class="wall" x1="72" y1="595" x2="72" y2="415" />         <!-- L -->
+    <line class="wall" x1="344" y1="918" x2="779" y2="918" />       <!-- M -->
+    <line class="wall" x1="344" y1="918" x2="344" y2="749" />       <!-- N -->
+    <line class="wall" x1="344" y1="666" x2="344" y2="498" />       <!-- O -->
+    <line class="wall" x1="344" y1="749" x2="344" y2="666" />       <!-- P -->
+    <line class="wall" x1="344" y1="93" x2="779" y2="93" />         <!-- R -->
+    <line class="wall" x1="344" y1="423" x2="344" y2="205" />       <!-- S -->
+
+    <line class="wall" x1="410" y1="550" x2="590" y2="550" />       <!-- U -->
+    <line class="wall" x1="410" y1="700" x2="410" y2="550" />       <!-- W -->
+  </g>
+
+  <!-- Wall Labels -->
+  <g class="walllabel">
+    <text x="1100" y="585">A</text>
+    <text x="940" y="555">B</text>
+    <text x="940" y="320">C</text>
+    <text x="940" y="472">D</text>
+    <text x="1258" y="410">E</text>
+    <text x="780" y="580">F</text>
+    <text x="793" y="578">H</text>
+    <text x="515" y="344">J</text>
+    <text x="84" y="508">L</text>
+    <text x="558" y="902">M</text>
+    <text x="355" y="835">N</text>
+    <text x="355" y="587">O</text>
+    <text x="355" y="712">P</text>
+    <text x="558" y="78">R</text>
+    <text x="355" y="318">S</text>
+    <text x="498" y="535">U</text>
+    <text x="421" y="632">W</text>
+  </g>
+
+  <!-- Room Labels -->
+  <g class="roomlabel">
+    <text x="1030" y="410">Bedroom</text>
+    <text x="560" y="485">Hallway</text>
+    <text x="445" y="635">Office</text>
+    <text x="625" y="315">Kitchen</text>
+    <text x="1148" y="600">Living / Music</text>
+    <text x="1337" y="622">Misc Room</text>
+    <text x="255" y="430">Bathroom</text>
+  </g>
+
+  <text class="title" x="34" y="52">Hello Clarice - Top-Down Map</text>
+  <text class="sub" x="34" y="80">Current layout with room labels and wall identifiers from the scene code</text>
+  <text class="legend" x="34" y="975">Scale: approximate gameplay coordinates projected to x-z plane (bird's-eye view)</text>
+</svg>

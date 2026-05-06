@@ -107,11 +107,12 @@ function App() {
       youtubePlayerRef.current = new win.YT.Player("landing-bg-music", {
         videoId: "PLFVGwGQcB0",
         playerVars: {
-          autoplay: 0,
+          autoplay: 1,
           controls: 0,
           disablekb: 1,
           fs: 0,
           iv_load_policy: 3,
+          mute: 1,
           modestbranding: 1,
           rel: 0,
         },
@@ -119,7 +120,7 @@ function App() {
           onReady: () => {
             youtubeReadyRef.current = true;
             if (!isAwake) {
-              youtubePlayerRef.current?.unMute();
+              youtubePlayerRef.current?.mute();
               youtubePlayerRef.current?.playVideo();
             }
           },
@@ -149,12 +150,16 @@ function App() {
       youtubePlayerRef.current.stopVideo();
       return;
     }
-    youtubePlayerRef.current.unMute();
+    youtubePlayerRef.current.mute();
     youtubePlayerRef.current.playVideo();
   }, [isAwake]);
 
   useEffect(() => {
     const onFirstInteraction = () => {
+      if (!isAwake && youtubeReadyRef.current && youtubePlayerRef.current) {
+        youtubePlayerRef.current.unMute();
+        youtubePlayerRef.current.playVideo();
+      }
       if (isAwake) {
         setHasInteracted(true);
       }
