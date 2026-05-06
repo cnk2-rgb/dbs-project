@@ -331,16 +331,16 @@ function LookOnlyCamera({
 function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor: () => void }) {
   const floorMaterial = useRoughMaterial("#252626", "#161716", 0.82, "concrete");
   const wallMaterial = useRoughMaterial("#202221", "#111514", 0.76, "paint");
-  const ceilingMaterial = useRoughMaterial("#181a19", "#0b0d0c", 0.68, "paint");
+  const ceilingMaterial = useRoughMaterial("#2d3233", "#171d1e", 0.62, "paint");
   const rugMaterial = useRoughMaterial("#15100f", "#080606", 0.96, "fabric");
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-5.5, 0, -2]} receiveShadow>
-        <planeGeometry args={[20, 13, 36, 24]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-5.5, 0, 5]} receiveShadow>
+        <planeGeometry args={[20, 28, 36, 24]} />
         <primitive object={floorMaterial} attach="material" />
       </mesh>
-      <DebugWallLabel id="FLOOR-ALL" position={[-5.5, 0.08, -2]} rotation={[-Math.PI / 2, 0, 0]} />
+      <DebugWallLabel id="FLOOR-ALL" position={[-5.5, 0.08, 5]} rotation={[-Math.PI / 2, 0, 0]} />
 
       <mesh position={[0, 2.25, -4]} receiveShadow>
         {/* Wall A */}
@@ -397,11 +397,11 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
         rotationY={Math.PI / 2}
       />
 
-      <mesh position={[-5.5, 4.2, -2]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[20, 13, 20, 14]} />
+      <mesh position={[-5.5, 3.7, 5]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[20, 28, 20, 14]} />
         <primitive object={ceilingMaterial} attach="material" />
       </mesh>
-      <DebugWallLabel id="CEILING-ALL" position={[-5.5, 4.12, -2]} rotation={[Math.PI / 2, 0, 0]} />
+      <DebugWallLabel id="CEILING-ALL" position={[-5.5, 3.62, 5]} rotation={[Math.PI / 2, 0, 0]} />
 
       <mesh position={[0.2, 0.025, 0.6]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[2.9, 2.1, 6, 6]} />
@@ -976,12 +976,12 @@ function clampGaze(
 
 function constrainPlayerPosition(position: Vector3) {
   position.x = MathUtils.clamp(position.x, -14.7, 3.2);
-  position.z = MathUtils.clamp(position.z, -4.25, 4.8);
+  position.z = MathUtils.clamp(position.z, -4.25, 17.8);
 
   const inBedroom = position.x >= -3.2;
   // Keep the narrow transition clamp local to the bedroom doorway zone.
   // Without the z check, moving deeper in the hall can get incorrectly snapped.
-  const inHallTransition = position.x < -3.2 && position.x > -6.2 && position.z > -2.2;
+  const inHallTransition = position.x < -3.2 && position.x > -6.2 && position.z > -2.2 && position.z < 1.2;
 
   if (inBedroom) {
     position.z = MathUtils.clamp(position.z, -3.7, 3.6);
@@ -993,5 +993,5 @@ function constrainPlayerPosition(position: Vector3) {
     return;
   }
 
-  position.z = MathUtils.clamp(position.z, -4.1, 1.35);
+  position.z = MathUtils.clamp(position.z, -4.1, 17.8);
 }
