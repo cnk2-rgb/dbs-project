@@ -61,7 +61,7 @@
   <!-- Walls (A-W) projected to top-down -->
   <g class="wall">
     <rect x="1160" y="201.90000000000003" width="630" height="16.2" />        <!-- A -->
-    <rect x="1151.9" y="210" width="16.2" height="180" />         <!-- B -->
+    <rect x="1151.9" y="151.5" width="16.2" height="238.5" />         <!-- B -->
     <rect x="1151.9" y="534" width="16.2" height="432" />         <!-- C -->
     <rect x="1151.9" y="390" width="16.2" height="108" />         <!-- D -->
     <rect x="1781.9" y="210" width="16.2" height="720" />         <!-- E -->
@@ -77,8 +77,10 @@
     <rect x="452" y="203.39999999999998" width="12.6" height="101.25" />      <!-- N -->
     <rect x="452" y="354.15" width="12.6" height="101.25" />       <!-- O -->
     <rect x="452" y="305.25" width="12.6" height="49.5" />        <!-- P -->
-    <rect x="452" y="698.5500000000001" width="522" height="6.3" />          <!-- R -->
+    <rect x="452" y="788.5500000000001" width="522" height="6.3" />          <!-- R -->
     <rect x="452" y="453" width="12.6" height="252" />            <!-- S -->
+    <rect x="1062.7" y="181.85" width="12.6" height="229.5" />    <!-- Q -->
+    <rect x="558.7" y="406.425" width="12.6" height="249.75" />   <!-- T -->
 
     <rect x="134" y="389.55" width="324" height="6.3" />          <!-- U -->
     <rect x="134" y="254.55" width="324" height="6.3" />          <!-- V -->
@@ -87,7 +89,7 @@
 
   <g class="label-wall">
     <text x="1470" y="225">A</text>
-    <text x="1178" y="300">B</text>
+    <text x="1178" y="270.75">B</text>
     <text x="1178" y="740">C</text>
     <text x="1178" y="440">D</text>
     <text x="1762" y="555">E</text>
@@ -101,8 +103,10 @@
     <text x="471" y="248">N</text>
     <text x="471" y="398">O</text>
     <text x="471" y="326">P</text>
-    <text x="705" y="711">R</text>
+    <text x="705" y="801">R</text>
     <text x="471" y="582">S</text>
+    <text x="1082" y="300">Q</text>
+    <text x="578" y="539">T</text>
     <text x="282" y="402">U</text>
     <text x="282" y="267">V</text>
     <text x="148" y="320">W</text>

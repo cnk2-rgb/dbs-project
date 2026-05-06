@@ -112,7 +112,6 @@ export function OfficeArea() {
             <sphereGeometry args={[0.07, 12, 10]} />
             <primitive object={deskDark.clone()} attach="material" />
           </mesh>
-          <pointLight position={[0.28, 0.3, 0]} intensity={2.3} distance={3.5} decay={1.7} color="#ffe8be" />
         </group>
       </group>
 
@@ -162,15 +161,13 @@ export function OfficeArea() {
         </mesh>
       </group>
 
-      <pointLight position={[-13.1, 3.2, 2.45]} intensity={2.1} distance={6.5} decay={1.9} color="#c6e0ef" />
-      <pointLight position={[-12.2, 1.15, 3.15]} intensity={0.8} distance={4.2} decay={2} color="#83b2ca" />
       <rectAreaLight
         position={[-13.08, 3.95, 2.46]}
         rotation={[-Math.PI / 2, 0, 0]}
-        width={1.8}
-        height={1.1}
-        intensity={7}
-        color="#d6ecf9"
+        width={2.4}
+        height={1.7}
+        intensity={10}
+        color="#d9edf8"
       />
     </group>
   );

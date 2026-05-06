@@ -6,30 +6,52 @@ import { MathUtils } from "three";
 
 export function HallwayWing() {
   const hallwayWall = useRoughMaterial("#202b31", "#0b1116", 0.76, "paint");
+  const wallFTop = hallwayWall.clone();
+  wallFTop.roughness = 1;
+  wallFTop.metalness = 0;
+  const wallFMaterials = [
+    hallwayWall,
+    hallwayWall,
+    wallFTop,
+    hallwayWall,
+    hallwayWall,
+    hallwayWall,
+  ];
   const hallwayCenterZ = -1.4;
   const depthCompression = 0.5;
 
   return (
     <group position={[0, 0, hallwayCenterZ]} scale={[1, 1, depthCompression]}>
       <group position={[0, 0, -hallwayCenterZ]}>
-      <mesh position={[-5.525, 2.1, -2.6]} receiveShadow>
+      <mesh position={[-5.525, 2.1, -2.8]} receiveShadow>
         {/* Wall F */}
         <boxGeometry args={[4.05, 4.2, 0.14]} />
-        <primitive object={hallwayWall} attach="material" />
+        <primitive object={wallFMaterials} attach="material" />
       </mesh>
-      <DebugWallLabel id="F" position={[-5.525, 2.1, -2.45]} oppositePosition={[-5.525, 2.1, -2.75]} rotationY={0} />
+      <DebugWallLabel id="F" position={[-5.525, 2.1, -2.65]} oppositePosition={[-5.525, 2.1, -2.95]} rotationY={0} />
       <mesh position={[-5.2, 3.4, -2.6]} receiveShadow>
         {/* Wall H */}
         <boxGeometry args={[1.0, 1.6, 0.14]} />
         <primitive object={hallwayWall} attach="material" />
       </mesh>
       <DebugWallLabel id="H" position={[-5.2, 3.4, -2.45]} oppositePosition={[-5.2, 3.4, -2.75]} rotationY={0} />
-      <mesh position={[-9.575, 2.1, -2.6]} receiveShadow>
+      <mesh position={[-9.575, 2.1, -2.8]} receiveShadow>
         {/* Wall I */}
         <boxGeometry args={[0.85, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="I" position={[-9.575, 2.1, -2.45]} oppositePosition={[-9.575, 2.1, -2.75]} rotationY={0} />
+      <DebugWallLabel id="I" position={[-9.575, 2.1, -2.65]} oppositePosition={[-9.575, 2.1, -2.95]} rotationY={0} />
+      <mesh position={[-4.9, 2.1, -5.35]} receiveShadow>
+        {/* Wall Q */}
+        <boxGeometry args={[0.14, 4.2, 5.1]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <DebugWallLabel
+        id="Q"
+        position={[-4.73, 2.1, -5.35]}
+        oppositePosition={[-5.07, 2.1, -5.35]}
+        rotationY={Math.PI / 2}
+      />
 
       <mesh position={[-8.95, 2.1, 0.55]} receiveShadow>
         {/* Wall J */}
@@ -44,21 +66,21 @@ export function HallwayWing() {
       </mesh>
       <DebugWallLabel id="K" position={[-4.9, 2.1, 0.4]} oppositePosition={[-4.9, 2.1, 0.7]} rotationY={0} />
 
-      <mesh position={[-8.35, 2.1, -6.9-1]} receiveShadow>
+      <mesh position={[-7.42, 2.1, -7.9]} receiveShadow>
         {/* Wall M */}
-        <boxGeometry args={[5.8, 4.2, 0.14]} />
+        <boxGeometry args={[7.66, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="M" position={[-8.35, 2.1, -6.75-1]} oppositePosition={[-8.35, 2.1, -7.05-1]} rotationY={0} />
-      <mesh position={[-11.25, 2.1, -6.275]} receiveShadow>
+      <DebugWallLabel id="M" position={[-7.42, 2.1, -7.75]} oppositePosition={[-7.42, 2.1, -8.05]} rotationY={0} />
+      <mesh position={[-11.25, 2.1, -6.525]} receiveShadow>
         {/* Wall N */}
-        <boxGeometry args={[0.14, 4.2, 2.25]} />
+        <boxGeometry args={[0.14, 4.2, 2.75]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
       <DebugWallLabel
         id="N"
-        position={[-11.08, 2.1, -6.275]}
-        oppositePosition={[-11.42, 2.1, -6.275]}
+        position={[-11.08, 2.1, -6.525]}
+        oppositePosition={[-11.42, 2.1, -6.525]}
         rotationY={Math.PI / 2}
       />
       <mesh position={[-11.25, 2.1, -2.925]} receiveShadow>
@@ -83,38 +105,58 @@ export function HallwayWing() {
         oppositePosition={[-11.42, 3.5, -4.6]}
         rotationY={Math.PI / 2}
       />
-      <mesh position={[-7.725, 2.1, 4.1]} receiveShadow>
+      <mesh position={[-7.725, 2.1, 6.1]} receiveShadow>
         {/* Wall R */}
         <boxGeometry args={[4.55, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="R" position={[-7.725, 2.1, 3.95]} oppositePosition={[-7.725, 2.1, 4.25]} rotationY={0} />
-      <mesh position={[-11.25, 2.1, 1.0]} receiveShadow>
+      <DebugWallLabel id="R" position={[-7.725, 2.1, 5.95]} oppositePosition={[-7.725, 2.1, 6.25]} rotationY={0} />
+      <mesh position={[-10.0, 2.1, 5.325]} receiveShadow>
+        {/* Wall T (connects left edges of J and R) */}
+        <boxGeometry args={[0.14, 4.2, 9.55]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <DebugWallLabel
+        id="T"
+        position={[-9.83, 2.1, 5.325]}
+        oppositePosition={[-10.17, 2.1, 5.325]}
+        rotationY={Math.PI / 2}
+      />
+      <mesh position={[-11.25, 2.1, 3.0]} receiveShadow>
         {/* Wall S */}
-        <boxGeometry args={[0.14, 4.2, 5.6]} />
+        <boxGeometry args={[0.14, 4.2, 9.6]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
       <DebugWallLabel
         id="S"
-        position={[-11.08, 2.1, 1.0]}
-        oppositePosition={[-11.42, 2.1, 1.0]}
+        position={[-11.08, 2.1, 3.0]}
+        oppositePosition={[-11.42, 2.1, 3.0]}
         rotationY={Math.PI / 2}
       />
 
-      <pointLight position={[-6.5, 2.35, -1.35]} intensity={0.88} color="#86adc0" distance={8.6} decay={2} />
-      <pointLight position={[-8.45, 2.1, -4.05]} intensity={0.56} color="#78a0bb" distance={5.5} decay={2} />
-      <pointLight position={[-8.45, 2.1, 1.35]} intensity={0.56} color="#78a0bb" distance={5.5} decay={2} />
-      <pointLight position={[-7.2, 2.05, -1.35]} intensity={0.46} color="#6b90a7" distance={6.8} decay={2} />
-      <pointLight position={[-8.25, 2.55, 1.45]} intensity={1.65} color="#ffe3ba" distance={7.2} decay={1.8} />
-      <pointLight position={[-8.35, 2.9, 1.4]} intensity={7.5} color="#fff6de" distance={11} decay={1.35} />
-      <pointLight position={[-8.35, 1.1, 1.2]} intensity={3.6} color="#fff0cf" distance={8.5} decay={1.2} />
       <rectAreaLight
-        position={[-8.35, 3.85, 1.25]}
+        position={[-9.55, 3.95, -4.9]}
         rotation={[-Math.PI / 2, 0, 0]}
-        width={2.6}
-        height={1.8}
-        intensity={18}
-        color="#fff8e6"
+        width={2.2}
+        height={1.4}
+        intensity={16.5}
+        color="#edf4f9"
+      />
+      <rectAreaLight
+        position={[-7.2, 3.95, -1.35]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        width={3.2}
+        height={1.4}
+        intensity={11}
+        color="#d6e9f5"
+      />
+      <rectAreaLight
+        position={[-8.1, 3.95, 1.4]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        width={2.4}
+        height={1.4}
+        intensity={10.5}
+        color="#d3e6f2"
       />
 
       <OfficeDoor />

@@ -85,19 +85,19 @@ export function BedroomScene({
         doorInteractionTick={doorInteractionTick}
         returnToPhoneTick={returnToPhoneTick}
       />
-      <hemisphereLight intensity={0.46} color="#9fb4ba" groundColor="#1d1612" />
-      <ambientLight intensity={0.3} color="#879ba5" />
+      <hemisphereLight intensity={0.68} color="#9fb4ba" groundColor="#1d1612" />
+      <ambientLight intensity={0.5} color="#879ba5" />
       <directionalLight
         position={[-2.2, 3.2, 1.8]}
-        intensity={0.78}
+        intensity={1.7}
         color="#8091a0"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <pointLight position={[-2.85, 1.15, -2.3]} intensity={3.8} color="#8fb7c6" distance={6.8} decay={2} />
-      <pointLight position={[2.3, 2.2, -1.7]} intensity={1.05} color="#bad6df" distance={8} decay={2} />
-      <pointLight position={[0, 1.2, 2.05]} intensity={1.15} color="#7f9495" distance={3.5} decay={2.3} />
+      <pointLight position={[-2.85, 1.15, -2.3]} intensity={5.2} color="#8fb7c6" distance={6.8} decay={2} />
+      <pointLight position={[2.3, 2.2, -1.7]} intensity={1.55} color="#bad6df" distance={8} decay={2} />
+      <pointLight position={[0, 1.2, 2.05]} intensity={1.7} color="#7f9495" distance={3.5} decay={2.3} />
 
       <RoomShell doorOpen={doorOpen} onToggleDoor={onToggleDoor} />
       <HallwayWing />
@@ -349,15 +349,15 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
       </mesh>
       <DebugWallLabel id="A" position={[0, 2.25, -3.86]} oppositePosition={[0, 2.25, -4.14]} rotationY={0} />
 
-      <mesh position={[-3.5, 2.25, -3]} receiveShadow>
+      <mesh position={[-3.5, 2.25, -3.325]} receiveShadow>
         {/* Wall B */}
-        <boxGeometry args={[0.18, 4.5, 2.0, 1, 10, 8]} />
+        <boxGeometry args={[0.18, 4.5, 2.65, 1, 10, 8]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
       <DebugWallLabel
         id="B"
-        position={[-3.36, 2.25, -3]}
-        oppositePosition={[-3.64, 2.25, -3]}
+        position={[-3.36, 2.25, -3.325]}
+        oppositePosition={[-3.64, 2.25, -3.325]}
         rotationY={Math.PI / 2}
       />
 
@@ -979,7 +979,9 @@ function constrainPlayerPosition(position: Vector3) {
   position.z = MathUtils.clamp(position.z, -4.25, 4.8);
 
   const inBedroom = position.x >= -3.2;
-  const inHallTransition = position.x < -3.2 && position.x > -6.2;
+  // Keep the narrow transition clamp local to the bedroom doorway zone.
+  // Without the z check, moving deeper in the hall can get incorrectly snapped.
+  const inHallTransition = position.x < -3.2 && position.x > -6.2 && position.z > -2.2;
 
   if (inBedroom) {
     position.z = MathUtils.clamp(position.z, -3.7, 3.6);
