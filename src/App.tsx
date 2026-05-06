@@ -37,6 +37,7 @@ function App() {
   const [postPhoneDialogueShown, setPostPhoneDialogueShown] = useState(false);
   const [doorDialogueVisible, setDoorDialogueVisible] = useState(false);
   const [doorDialogueShown, setDoorDialogueShown] = useState(false);
+  const [doorInteractionTick, setDoorInteractionTick] = useState(0);
   const [phoneInInventory, setPhoneInInventory] = useState(false);
   const [phoneOpenHintVisible, setPhoneOpenHintVisible] = useState(false);
   const [closePhoneHintVisible, setClosePhoneHintVisible] = useState(false);
@@ -292,6 +293,7 @@ function App() {
             }}
             skipIntroUsed={skipIntroUsed}
             onToggleDoor={() => {
+              setDoorInteractionTick((value) => value + 1);
               setDoorOpen((value) => {
                 const next = !value;
                 if (next && !doorDialogueShown) {
@@ -305,6 +307,7 @@ function App() {
               });
             }}
             inputLocked={controlsLocked}
+            doorInteractionTick={doorInteractionTick}
             returnToPhoneTick={0}
           />
         </Canvas>

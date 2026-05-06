@@ -4,6 +4,7 @@ import { EffectComposer, Vignette } from "@react-three/postprocessing";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import { HallwayWing } from "./scene/HallwayWing";
+import { DebugWallLabel } from "./scene/DebugWallLabel";
 import { useRoughMaterial } from "./scene/useRoughMaterial";
 import {
   CanvasTexture,
@@ -18,7 +19,9 @@ import type { IntroPhase } from "../types/app";
 
 const pointerSensitivity = 0.002;
 const touchSensitivity = 0.004;
-const horizontalGazeLimit = MathUtils.degToRad(180);
+// Allow enough absolute yaw range to still get a full 180-degree turnaround
+// after the player has already rotated while moving through the space.
+const horizontalGazeLimit = MathUtils.degToRad(360);
 const minPitch = MathUtils.degToRad(-42);
 const maxPitch = MathUtils.degToRad(20);
 const panelFocusPitch = MathUtils.degToRad(78);
@@ -49,6 +52,7 @@ export function BedroomScene({
   skipIntroUsed,
   onToggleDoor,
   inputLocked,
+  doorInteractionTick,
   returnToPhoneTick,
 }: {
   isAwake: boolean;
@@ -65,6 +69,7 @@ export function BedroomScene({
   skipIntroUsed: boolean;
   onToggleDoor: () => void;
   inputLocked: boolean;
+  doorInteractionTick: number;
   returnToPhoneTick: number;
 }) {
   return (
@@ -77,6 +82,7 @@ export function BedroomScene({
         inputLocked={inputLocked}
         introPhase={introPhase}
         phonePanelActive={phonePanelActive}
+        doorInteractionTick={doorInteractionTick}
         returnToPhoneTick={returnToPhoneTick}
       />
       <hemisphereLight intensity={0.46} color="#9fb4ba" groundColor="#1d1612" />
@@ -120,6 +126,7 @@ function LookOnlyCamera({
   inputLocked,
   introPhase,
   phonePanelActive,
+  doorInteractionTick,
   returnToPhoneTick,
 }: {
   enabled: boolean;
@@ -127,6 +134,7 @@ function LookOnlyCamera({
   inputLocked: boolean;
   introPhase: IntroPhase;
   phonePanelActive: boolean;
+  doorInteractionTick: number;
   returnToPhoneTick: number;
 }) {
   const { camera, gl } = useThree();
@@ -140,15 +148,23 @@ function LookOnlyCamera({
   const forwardDirection = useRef(new Vector3());
   const rightDirection = useRef(new Vector3());
   const returnCameraUntil = useRef(0);
+  const freezeMovementUntil = useRef(0);
 
   useEffect(() => {
     if (returnToPhoneTick <= 0) return;
     returnCameraUntil.current = performance.now() + 2200;
   }, [returnToPhoneTick]);
 
+  useEffect(() => {
+    if (doorInteractionTick <= 0) return;
+    movement.current = { forward: false, backward: false, left: false, right: false };
+    freezeMovementUntil.current = performance.now() + 320;
+  }, [doorInteractionTick]);
+
   useFrame((_, delta) => {
     const now = performance.now();
     const returnCameraActive = now < returnCameraUntil.current;
+    const doorFreezeActive = now < freezeMovementUntil.current;
     if (introPhase === "flicker") {
       targetYaw.current = 0;
       targetPitch.current = maxPitch;
@@ -181,8 +197,6 @@ function LookOnlyCamera({
         position.current.lerp(fixedHeadPosition, 0.08);
         targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.08);
         targetPitch.current = MathUtils.lerp(targetPitch.current, MathUtils.degToRad(-14), 0.08);
-      } else {
-        position.current.lerp(fixedHeadPosition, 0.05);
       }
       if (introPhase !== "flicker" && introPhase !== "pan" && !returnCameraActive) {
         targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.1);
@@ -191,6 +205,8 @@ function LookOnlyCamera({
     } else if (!canMove) {
       movement.current = { forward: false, backward: false, left: false, right: false };
       position.current.copy(fixedHeadPosition);
+    } else if (doorFreezeActive) {
+      movement.current = { forward: false, backward: false, left: false, right: false };
     } else {
       const movementVector = new Vector3();
       const movementSpeed = 1.55;
@@ -326,29 +342,39 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
       </mesh>
 
       <mesh position={[0, 2.25, -4]} receiveShadow>
+        {/* Wall A */}
         <boxGeometry args={[7, 4.5, 0.18, 16, 10, 1]} />
         <primitive object={wallMaterial} attach="material" />
       </mesh>
+      <DebugWallLabel id="A" position={[0, 2.25, -3.86]} />
 
       <mesh position={[-3.5, 2.25, -3]} receiveShadow>
+        {/* Wall B */}
         <boxGeometry args={[0.18, 4.5, 2.0, 1, 10, 8]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
+      <DebugWallLabel id="B" position={[-3.36, 2.25, -3]} />
 
       <mesh position={[-3.5, 2.25, 1.6]} receiveShadow>
+        {/* Wall C */}
         <boxGeometry args={[0.18, 4.5, 4.8, 1, 10, 8]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
+      <DebugWallLabel id="C" position={[-3.36, 2.25, 1.6]} />
 
       <mesh position={[-3.5, 3.35, -1.4]} receiveShadow>
+        {/* Wall D */}
         <boxGeometry args={[0.18, 2.3, 1.2, 1, 6, 4]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
+      <DebugWallLabel id="D" position={[-3.36, 3.35, -1.4]} />
 
       <mesh position={[3.5, 2.25, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        {/* Wall E */}
         <boxGeometry args={[8, 4.5, 0.18, 16, 10, 1]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
+      <DebugWallLabel id="E" position={[3.36, 2.25, 0]} />
 
       <mesh position={[0, 4.45, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[7, 8, 10, 12]} />
@@ -766,7 +792,7 @@ function Door({ open, onToggle }: { open: boolean; onToggle: () => void }) {
 
   useFrame(() => {
     if (!leafRef.current) return;
-    const target = open ? -MathUtils.degToRad(86) : 0;
+    const target = open ? MathUtils.degToRad(86) : 0;
     leafRef.current.rotation.y = MathUtils.lerp(leafRef.current.rotation.y, target, 0.12);
   });
 
@@ -928,7 +954,7 @@ function clampGaze(
 
 function constrainPlayerPosition(position: Vector3) {
   position.x = MathUtils.clamp(position.x, -14.7, 3.2);
-  position.z = MathUtils.clamp(position.z, -7.0, 4.8);
+  position.z = MathUtils.clamp(position.z, -4.25, 4.8);
 
   const inBedroom = position.x >= -3.2;
   const inHallTransition = position.x < -3.2 && position.x > -6.2;
@@ -939,9 +965,9 @@ function constrainPlayerPosition(position: Vector3) {
   }
 
   if (inHallTransition) {
-    position.z = MathUtils.clamp(position.z, -2.55, -0.25);
+    position.z = MathUtils.clamp(position.z, -1.95, -0.85);
     return;
   }
 
-  position.z = MathUtils.clamp(position.z, -6.8, 4.05);
+  position.z = MathUtils.clamp(position.z, -4.1, 1.35);
 }

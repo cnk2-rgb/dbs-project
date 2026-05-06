@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1400" viewBox="0 0 2200 1400">
+  <defs>
+    <style>
+      .bg { fill: #f6f3ec; }
+      .shell { fill: #111; }
+      .interior { fill: #f9f7f2; }
+      .hall { fill: #e7d6bf; stroke: #8a6d52; stroke-width: 3; }
+      .bedroom { fill: #d9e4ef; stroke: #4e5d69; stroke-width: 3; }
+      .bath { fill: #d9eadf; stroke: #567363; stroke-width: 3; }
+      .office { fill: #e8dfc7; stroke: #75684d; stroke-width: 3; }
+      .living { fill: #dfe8df; stroke: #5a6c60; stroke-width: 3; }
+      .kitchen { fill: #f0dfcf; stroke: #8a6c58; stroke-width: 3; }
+      .flex { fill: #ebe2d9; stroke: #7a695d; stroke-width: 3; }
+      .wall { stroke: #2a2a2a; stroke-width: 4; fill: none; }
+      .thin { stroke: #4f5d6b; stroke-width: 2; fill: none; }
+      .furn { fill: none; stroke: #404040; stroke-width: 3; }
+      .soft { fill: #ffffff; stroke: #404040; stroke-width: 2.5; }
+      .txt { font: 700 26px Arial, sans-serif; fill: #12171b; }
+      .sub { font: 500 18px Arial, sans-serif; fill: #32414d; }
+      .dim { font: 600 19px Arial, sans-serif; fill: #2f3b45; }
+      .small { font: 600 16px Arial, sans-serif; fill: #38464f; }
+      .title { font: 700 38px Arial, sans-serif; fill: #111; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="2200" height="1400" />
+
+  <text class="title" x="70" y="66">Real-Life Inspired Apartment Floor Plan</text>
+  <text class="sub" x="70" y="98">Inspired by floor-through brownstone layouts and flexible apartment plans: long circulation spine, service core near the bend, and larger public rooms at the rear.</text>
+
+  <!-- Outer shell -->
+  <rect class="shell" x="80" y="120" width="2040" height="1180" rx="4" />
+  <rect class="interior" x="102" y="142" width="1996" height="1136" />
+
+  <!-- Hallway -->
+  <rect class="hall" x="560" y="200" width="120" height="920" />
+  <rect class="hall" x="560" y="460" width="980" height="120" />
+  <text class="txt" x="575" y="650" transform="rotate(-90 575,650)">Long Hallway</text>
+  <text class="small" x="595" y="680" transform="rotate(-90 595,680)">~4' clear width, L-shaped bend</text>
+  <text class="txt" x="980" y="540">Hall Bend</text>
+  <text class="dim" x="955" y="572">service-core turn</text>
+
+  <!-- Entry door -->
+  <rect class="bg" x="598" y="1118" width="44" height="24" />
+  <path class="wall" d="M 560 1120 H 598 M 642 1120 H 680" />
+  <path class="thin" d="M 598 1120 A 44 44 0 0 1 642 1164" />
+  <text class="small" x="548" y="1202">Entry</text>
+
+  <!-- Bedroom -->
+  <rect class="bedroom" x="140" y="240" width="400" height="300" />
+  <text class="txt" x="255" y="382">Bedroom</text>
+  <text class="dim" x="248" y="416">~13' x 14'</text>
+  <rect class="bg" x="534" y="340" width="28" height="70" />
+  <text class="small" x="230" y="512">front / quiet wing</text>
+
+  <!-- Bathroom -->
+  <rect class="bath" x="150" y="590" width="310" height="230" />
+  <text class="txt" x="218" y="695">Bathroom</text>
+  <text class="dim" x="232" y="730">~8' x 8'</text>
+  <rect class="bg" x="534" y="660" width="28" height="74" />
+
+  <!-- Office -->
+  <rect class="office" x="740" y="180" width="360" height="260" />
+  <text class="txt" x="862" y="302">Office</text>
+  <text class="dim" x="846" y="336">~10' x 11'</text>
+  <rect class="bg" x="850" y="454" width="80" height="26" />
+
+  <!-- Living / Music room -->
+  <rect class="living" x="1120" y="170" width="880" height="270" />
+  <text class="txt" x="1390" y="292">Living / Music Room</text>
+  <text class="dim" x="1450" y="326">~18' x 16'</text>
+  <rect class="bg" x="1320" y="454" width="90" height="26" />
+
+  <!-- Kitchen -->
+  <rect class="kitchen" x="740" y="640" width="420" height="250" />
+  <text class="txt" x="857" y="758">Kitchen</text>
+  <text class="dim" x="846" y="792">~11' x 12'</text>
+  <rect class="bg" x="880" y="580" width="90" height="26" />
+
+  <!-- Flex room -->
+  <rect class="flex" x="1180" y="640" width="820" height="250" />
+  <text class="txt" x="1500" y="758">Flex Room</text>
+  <text class="dim" x="1498" y="792">~13' x 12'</text>
+  <rect class="bg" x="1440" y="580" width="90" height="26" />
+
+  <!-- Interior wall separators around the bend -->
+  <rect class="bg" x="680" y="200" width="22" height="920" />
+  <rect class="bg" x="560" y="580" width="980" height="22" />
+
+  <!-- Window hints on exterior walls -->
+  <rect class="shell" x="226" y="236" width="92" height="8" />
+  <rect class="shell" x="348" y="236" width="92" height="8" />
+  <rect class="shell" x="206" y="812" width="92" height="8" />
+  <rect class="shell" x="330" y="812" width="92" height="8" />
+  <rect class="shell" x="776" y="170" width="92" height="8" />
+  <rect class="shell" x="910" y="170" width="92" height="8" />
+  <rect class="shell" x="1552" y="170" width="92" height="8" />
+  <rect class="shell" x="1682" y="170" width="92" height="8" />
+  <rect class="shell" x="782" y="884" width="92" height="8" />
+  <rect class="shell" x="916" y="884" width="92" height="8" />
+  <rect class="shell" x="1460" y="884" width="92" height="8" />
+  <rect class="shell" x="1590" y="884" width="92" height="8" />
+
+  <!-- Bedroom furniture -->
+  <rect class="soft" x="195" y="285" width="170" height="110" rx="8" />
+  <rect class="furn" x="205" y="295" width="150" height="90" rx="6" />
+  <rect class="soft" x="195" y="405" width="52" height="38" rx="6" />
+  <rect class="soft" x="313" y="405" width="52" height="38" rx="6" />
+  <text class="small" x="236" y="347">bed</text>
+  <rect class="soft" x="392" y="292" width="96" height="56" rx="6" />
+  <text class="small" x="404" y="326">dresser</text>
+
+  <!-- Bathroom fixtures -->
+  <rect class="soft" x="182" y="616" width="110" height="50" rx="10" />
+  <text class="small" x="202" y="648">tub</text>
+  <rect class="soft" x="304" y="616" width="72" height="48" rx="8" />
+  <text class="small" x="311" y="646">vanity</text>
+  <rect class="soft" x="392" y="690" width="42" height="56" rx="6" />
+  <text class="small" x="383" y="762">toilet</text>
+
+  <!-- Office furniture -->
+  <rect class="soft" x="790" y="228" width="142" height="62" rx="8" />
+  <text class="small" x="830" y="266">desk</text>
+  <rect class="soft" x="955" y="230" width="90" height="36" rx="6" />
+  <text class="small" x="962" y="255">bookcase</text>
+  <rect class="furn" x="848" y="300" width="42" height="42" rx="6" />
+  <text class="small" x="835" y="370">task chair</text>
+
+  <!-- Living / music furniture -->
+  <rect class="soft" x="1188" y="226" width="208" height="86" rx="14" />
+  <text class="small" x="1258" y="274">sofa</text>
+  <rect class="soft" x="1420" y="238" width="120" height="70" rx="8" />
+  <text class="small" x="1438" y="280">coffee table</text>
+  <rect class="soft" x="1608" y="214" width="184" height="86" rx="8" />
+  <text class="small" x="1658" y="266">piano</text>
+  <rect class="furn" x="1710" y="310" width="92" height="22" rx="4" />
+  <text class="small" x="1710" y="356">bench</text>
+
+  <!-- Kitchen fixtures -->
+  <path class="furn" d="M 770 842 H 980 V 666" />
+  <rect class="soft" x="770" y="666" width="126" height="42" rx="6" />
+  <text class="small" x="792" y="694">sink</text>
+  <rect class="soft" x="892" y="666" width="122" height="42" rx="6" />
+  <text class="small" x="920" y="694">range</text>
+  <rect class="soft" x="1008" y="734" width="110" height="90" rx="8" />
+  <text class="small" x="1019" y="784">island</text>
+  <rect class="soft" x="770" y="734" width="74" height="92" rx="8" />
+  <text class="small" x="771" y="788">fridge</text>
+
+  <!-- Flex room furniture -->
+  <rect class="soft" x="1220" y="706" width="194" height="74" rx="12" />
+  <text class="small" x="1288" y="748">daybed</text>
+  <rect class="soft" x="1450" y="684" width="148" height="52" rx="8" />
+  <text class="small" x="1478" y="716">work desk</text>
+  <rect class="furn" x="1640" y="690" width="110" height="110" rx="10" />
+  <text class="small" x="1660" y="752">open</text>
+  <text class="small" x="1657" y="772">flex area</text>
+
+  <!-- Dimension callouts -->
+  <line class="thin" x1="560" y1="150" x2="680" y2="150" />
+  <line class="thin" x1="560" y1="136" x2="560" y2="164" />
+  <line class="thin" x1="680" y1="136" x2="680" y2="164" />
+  <text class="dim" x="567" y="132">4' hall width</text>
+
+  <line class="thin" x1="700" y1="1200" x2="1640" y2="1200" />
+  <line class="thin" x1="700" y1="1184" x2="700" y2="1218" />
+  <line class="thin" x1="1640" y1="1184" x2="1640" y2="1218" />
+  <text class="dim" x="1080" y="1232">long east wing for public and flexible rooms</text>
+
+  <text class="sub" x="146" y="1264">Real-life cues: floor-through apartment proportions, compact service rooms near the corridor, and larger living space where the unit opens up.</text>
+
+  <!-- Redraw room labels on top so they stay readable over the furniture -->
+  <text class="txt" x="255" y="382">Bedroom</text>
+  <text class="dim" x="248" y="416">~13' x 14'</text>
+  <text class="txt" x="218" y="695">Bathroom</text>
+  <text class="dim" x="232" y="730">~8' x 8'</text>
+  <text class="txt" x="862" y="302">Office</text>
+  <text class="dim" x="846" y="336">~10' x 11'</text>
+  <text class="txt" x="1390" y="292">Living / Music Room</text>
+  <text class="dim" x="1450" y="326">~18' x 16'</text>
+  <text class="txt" x="857" y="758">Kitchen</text>
+  <text class="dim" x="846" y="792">~11' x 12'</text>
+  <text class="txt" x="1500" y="758">Flex Room</text>
+  <text class="dim" x="1498" y="792">~13' x 12'</text>
+</svg>

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100" viewBox="0 0 1800 1100">
+  <defs>
+    <style>
+      .bg { fill: #f6f4ee; }
+      .ext { fill: #111; }
+      .room { fill: #dfe7ee; stroke: #4e5d69; stroke-width: 3; }
+      .core { fill: #e7d8c8; stroke: #7d6247; stroke-width: 3; }
+      .wet { fill: #d8e6dd; stroke: #527060; stroke-width: 3; }
+      .txt { font: 700 24px Arial, sans-serif; fill: #12171b; }
+      .dim { font: 600 20px Arial, sans-serif; fill: #2f3b45; }
+      .title { font: 700 34px Arial, sans-serif; fill: #111; }
+      .sub { font: 500 18px Arial, sans-serif; fill: #32414d; }
+      .door { fill: #f6f4ee; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1800" height="1100" />
+  <text class="title" x="70" y="66">Long Hallway Layout v2 (L-Shape)</text>
+  <text class="sub" x="70" y="98">L-shaped corridor with expanded footprint and wider room spacing: bedroom, bathroom, living/music, office, kitchen, flex room.</text>
+
+  <!-- Outer envelope -->
+  <rect class="ext" x="100" y="150" width="1580" height="840" rx="4" />
+  <rect class="bg" x="118" y="168" width="1544" height="804" />
+
+  <!-- L-shaped hallway -->
+  <rect class="core" x="300" y="470" width="1120" height="120" />
+  <rect class="core" x="1180" y="470" width="120" height="380" />
+  <rect class="core" x="1140" y="430" width="200" height="200" />
+  <text class="txt" x="760" y="542">Main Hallway</text>
+  <text class="txt" x="1138" y="690">L Bend</text>
+  <text class="dim" x="660" y="625">48 in clear width (within common 42-48 in residential range)</text>
+  <text class="dim" x="1110" y="662">~5' x 5' turn node</text>
+
+  <!-- Bedroom: far west -->
+  <rect class="room" x="140" y="300" width="240" height="260" />
+  <text class="txt" x="198" y="440">Bedroom</text>
+  <text class="dim" x="182" y="475">~11' x 12'</text>
+
+  <!-- Bathroom: west-mid, separated -->
+  <rect class="wet" x="520" y="280" width="180" height="170" />
+  <text class="txt" x="548" y="372">Bathroom</text>
+  <text class="dim" x="560" y="405">~8' x 7'</text>
+
+  <!-- Living / Music: north center -->
+  <rect class="room" x="820" y="220" width="350" height="210" />
+  <text class="txt" x="915" y="330">Living / Music</text>
+  <text class="dim" x="955" y="365">~14' x 10'</text>
+
+  <!-- Office: north-east, far from living -->
+  <rect class="room" x="1320" y="200" width="250" height="220" />
+  <text class="txt" x="1400" y="322">Office</text>
+  <text class="dim" x="1390" y="357">~10' x 10'</text>
+
+  <!-- Kitchen: south-east near vertical leg -->
+  <rect class="room" x="1320" y="610" width="300" height="240" />
+  <text class="txt" x="1428" y="740">Kitchen</text>
+  <text class="dim" x="1422" y="775">~12' x 11'</text>
+
+  <!-- Flex room: far south to maximize separation -->
+  <rect class="room" x="860" y="760" width="280" height="180" />
+  <text class="txt" x="955" y="848">Flex Room</text>
+  <text class="dim" x="952" y="883">~11' x 8'</text>
+
+  <!-- Door openings -->
+  <rect class="door" x="292" y="498" width="16" height="62" />
+  <rect class="door" x="585" y="460" width="70" height="16" />
+  <rect class="door" x="950" y="460" width="90" height="16" />
+  <rect class="door" x="1415" y="460" width="90" height="16" />
+  <rect class="door" x="1302" y="688" width="16" height="70" />
+  <rect class="door" x="960" y="752" width="80" height="16" />
+
+  <!-- Dimension markers -->
+  <line x1="300" y1="445" x2="1420" y2="445" stroke="#4f5d6b" stroke-width="2" />
+  <line x1="300" y1="430" x2="300" y2="470" stroke="#4f5d6b" stroke-width="2" />
+  <line x1="1420" y1="430" x2="1420" y2="470" stroke="#4f5d6b" stroke-width="2" />
+  <text class="dim" x="790" y="422">~45 ft main run</text>
+
+  <line x1="1325" y1="470" x2="1325" y2="850" stroke="#4f5d6b" stroke-width="2" />
+  <line x1="1300" y1="470" x2="1330" y2="470" stroke="#4f5d6b" stroke-width="2" />
+  <line x1="1300" y1="850" x2="1330" y2="850" stroke="#4f5d6b" stroke-width="2" />
+  <text class="dim" x="1340" y="668">~15 ft leg</text>
+</svg>
