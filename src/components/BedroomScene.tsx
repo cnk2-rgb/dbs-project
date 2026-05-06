@@ -336,50 +336,72 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[7, 8, 24, 24]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-5.5, 0, -2]} receiveShadow>
+        <planeGeometry args={[20, 13, 36, 24]} />
         <primitive object={floorMaterial} attach="material" />
       </mesh>
+      <DebugWallLabel id="FLOOR-ALL" position={[-5.5, 0.08, -2]} rotation={[-Math.PI / 2, 0, 0]} />
 
       <mesh position={[0, 2.25, -4]} receiveShadow>
         {/* Wall A */}
         <boxGeometry args={[7, 4.5, 0.18, 16, 10, 1]} />
         <primitive object={wallMaterial} attach="material" />
       </mesh>
-      <DebugWallLabel id="A" position={[0, 2.25, -3.86]} />
+      <DebugWallLabel id="A" position={[0, 2.25, -3.86]} oppositePosition={[0, 2.25, -4.14]} rotationY={0} />
 
       <mesh position={[-3.5, 2.25, -3]} receiveShadow>
         {/* Wall B */}
         <boxGeometry args={[0.18, 4.5, 2.0, 1, 10, 8]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="B" position={[-3.36, 2.25, -3]} />
+      <DebugWallLabel
+        id="B"
+        position={[-3.36, 2.25, -3]}
+        oppositePosition={[-3.64, 2.25, -3]}
+        rotationY={Math.PI / 2}
+      />
 
       <mesh position={[-3.5, 2.25, 1.6]} receiveShadow>
         {/* Wall C */}
         <boxGeometry args={[0.18, 4.5, 4.8, 1, 10, 8]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="C" position={[-3.36, 2.25, 1.6]} />
+      <DebugWallLabel
+        id="C"
+        position={[-3.36, 2.25, 1.6]}
+        oppositePosition={[-3.64, 2.25, 1.6]}
+        rotationY={Math.PI / 2}
+      />
 
       <mesh position={[-3.5, 3.35, -1.4]} receiveShadow>
         {/* Wall D */}
         <boxGeometry args={[0.18, 2.3, 1.2, 1, 6, 4]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="D" position={[-3.36, 3.35, -1.4]} />
+      <DebugWallLabel
+        id="D"
+        position={[-3.36, 3.35, -1.4]}
+        oppositePosition={[-3.64, 3.35, -1.4]}
+        rotationY={Math.PI / 2}
+      />
 
       <mesh position={[3.5, 2.25, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
         {/* Wall E */}
         <boxGeometry args={[8, 4.5, 0.18, 16, 10, 1]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="E" position={[3.36, 2.25, 0]} />
+      <DebugWallLabel
+        id="E"
+        position={[3.36, 2.25, 0]}
+        oppositePosition={[3.64, 2.25, 0]}
+        rotationY={Math.PI / 2}
+      />
 
-      <mesh position={[0, 4.45, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[7, 8, 10, 12]} />
+      <mesh position={[-5.5, 4.2, -2]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[20, 13, 20, 14]} />
         <primitive object={ceilingMaterial} attach="material" />
       </mesh>
+      <DebugWallLabel id="CEILING-ALL" position={[-5.5, 4.12, -2]} rotation={[Math.PI / 2, 0, 0]} />
 
       <mesh position={[0.2, 0.025, 0.6]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[2.9, 2.1, 6, 6]} />

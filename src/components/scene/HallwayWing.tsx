@@ -5,117 +5,113 @@ import { useRoughMaterial } from "./useRoughMaterial";
 import { MathUtils } from "three";
 
 export function HallwayWing() {
-  const hallwaySurface = useRoughMaterial("#1c2429", "#0a0f13", 0.84, "concrete");
   const hallwayWall = useRoughMaterial("#202b31", "#0b1116", 0.76, "paint");
-  const hallwayCeiling = useRoughMaterial("#1a2329", "#090e12", 0.74, "paint");
   const hallwayCenterZ = -1.4;
   const depthCompression = 0.5;
 
   return (
     <group position={[0, 0, hallwayCenterZ]} scale={[1, 1, depthCompression]}>
       <group position={[0, 0, -hallwayCenterZ]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-9.2, 0.01, -1.4]} receiveShadow>
-        <planeGeometry args={[11.4, 2.4, 20, 4]} />
-        <primitive object={hallwaySurface} attach="material" />
-      </mesh>
-
       <mesh position={[-5.525, 2.1, -2.6]} receiveShadow>
         {/* Wall F */}
         <boxGeometry args={[4.05, 4.2, 0.14]} />
         <primitive object={hallwayWall} attach="material" />
       </mesh>
-      <DebugWallLabel id="F" position={[-5.525, 2.1, -2.45]} />
+      <DebugWallLabel id="F" position={[-5.525, 2.1, -2.45]} oppositePosition={[-5.525, 2.1, -2.75]} rotationY={0} />
       <mesh position={[-5.2, 3.4, -2.6]} receiveShadow>
         {/* Wall H */}
         <boxGeometry args={[1.0, 1.6, 0.14]} />
         <primitive object={hallwayWall} attach="material" />
       </mesh>
-      <DebugWallLabel id="H" position={[-5.2, 3.4, -2.45]} />
+      <DebugWallLabel id="H" position={[-5.2, 3.4, -2.45]} oppositePosition={[-5.2, 3.4, -2.75]} rotationY={0} />
       <mesh position={[-9.575, 2.1, -2.6]} receiveShadow>
         {/* Wall I */}
         <boxGeometry args={[0.85, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="I" position={[-9.575, 2.1, -2.45]} />
+      <DebugWallLabel id="I" position={[-9.575, 2.1, -2.45]} oppositePosition={[-9.575, 2.1, -2.75]} rotationY={0} />
 
       <mesh position={[-8.95, 2.1, 0.55]} receiveShadow>
         {/* Wall J */}
         <boxGeometry args={[2.1, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="J" position={[-8.95, 2.1, 0.4]} />
+      <DebugWallLabel id="J" position={[-8.95, 2.1, 0.4]} oppositePosition={[-8.95, 2.1, 0.7]} rotationY={0} />
       <mesh position={[-4.9, 2.1, 0.55]} receiveShadow>
         {/* Wall K */}
         <boxGeometry args={[2.8, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="K" position={[-4.9, 2.1, 0.4]} />
+      <DebugWallLabel id="K" position={[-4.9, 2.1, 0.4]} oppositePosition={[-4.9, 2.1, 0.7]} rotationY={0} />
 
       <mesh position={[-14.88, 2.1, -1.4]} receiveShadow>
         {/* Wall L */}
         <boxGeometry args={[0.14, 4.2, 2.4]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="L" position={[-14.72, 2.1, -1.4]} />
+      <DebugWallLabel
+        id="L"
+        position={[-14.72, 2.1, -1.4]}
+        oppositePosition={[-15.04, 2.1, -1.4]}
+        rotationY={Math.PI / 2}
+      />
 
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-9.2, 4.2, -1.4]} receiveShadow>
-        <planeGeometry args={[11.4, 2.4, 10, 2]} />
-        <primitive object={hallwayCeiling} attach="material" />
-      </mesh>
-
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-8.35, 0.01, -4.1]} receiveShadow>
-        <planeGeometry args={[5.8, 5.6, 12, 12]} />
-        <primitive object={hallwaySurface.clone()} attach="material" />
-      </mesh>
-      <mesh position={[-8.35, 2.1, -6.9]} receiveShadow>
+      <mesh position={[-8.35, 2.1, -6.9-1]} receiveShadow>
         {/* Wall M */}
         <boxGeometry args={[5.8, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="M" position={[-8.35, 2.1, -6.75]} />
-      <mesh position={[-11.25, 2.1, -5.775]} receiveShadow>
+      <DebugWallLabel id="M" position={[-8.35, 2.1, -6.75-1]} oppositePosition={[-8.35, 2.1, -7.05-1]} rotationY={0} />
+      <mesh position={[-11.25, 2.1, -6.275]} receiveShadow>
         {/* Wall N */}
         <boxGeometry args={[0.14, 4.2, 2.25]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="N" position={[-11.08, 2.1, -5.775]} />
-      <mesh position={[-11.25, 2.1, -2.425]} receiveShadow>
+      <DebugWallLabel
+        id="N"
+        position={[-11.08, 2.1, -6.275]}
+        oppositePosition={[-11.42, 2.1, -6.275]}
+        rotationY={Math.PI / 2}
+      />
+      <mesh position={[-11.25, 2.1, -2.925]} receiveShadow>
         {/* Wall O */}
         <boxGeometry args={[0.14, 4.2, 2.25]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="O" position={[-11.08, 2.1, -2.425]} />
-      <mesh position={[-11.25, 3.5, -4.1]} receiveShadow>
+      <DebugWallLabel
+        id="O"
+        position={[-11.08, 2.1, -2.925]}
+        oppositePosition={[-11.42, 2.1, -2.925]}
+        rotationY={Math.PI / 2}
+      />
+      <mesh position={[-11.25, 3.5, -4.6]} receiveShadow>
         {/* Wall P */}
         <boxGeometry args={[0.14, 1.4, 1.1]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="P" position={[-11.08, 3.5, -4.1]} />
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-8.35, 4.2, -4.1]} receiveShadow>
-        <planeGeometry args={[5.8, 5.6, 8, 8]} />
-        <primitive object={hallwayCeiling.clone()} attach="material" />
-      </mesh>
-
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-8.35, 0.01, 1.3]} receiveShadow>
-        <planeGeometry args={[5.8, 5.6, 12, 12]} />
-        <primitive object={hallwaySurface.clone()} attach="material" />
-      </mesh>
+      <DebugWallLabel
+        id="P"
+        position={[-11.08, 3.5, -4.6]}
+        oppositePosition={[-11.42, 3.5, -4.6]}
+        rotationY={Math.PI / 2}
+      />
       <mesh position={[-8.35, 2.1, 4.1]} receiveShadow>
         {/* Wall R */}
         <boxGeometry args={[5.8, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="R" position={[-8.35, 2.1, 3.95]} />
+      <DebugWallLabel id="R" position={[-8.35, 2.1, 3.95]} oppositePosition={[-8.35, 2.1, 4.25]} rotationY={0} />
       <mesh position={[-11.25, 2.1, 1.3]} receiveShadow>
         {/* Wall S */}
         <boxGeometry args={[0.14, 4.2, 5.6]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="S" position={[-11.08, 2.1, 1.3]} />
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-8.35, 4.2, 1.3]} receiveShadow>
-        <planeGeometry args={[5.8, 5.6, 8, 8]} />
-        <primitive object={hallwayCeiling.clone()} attach="material" />
-      </mesh>
+      <DebugWallLabel
+        id="S"
+        position={[-11.08, 2.1, 1.3]}
+        oppositePosition={[-11.42, 2.1, 1.3]}
+        rotationY={Math.PI / 2}
+      />
 
       <pointLight position={[-6.5, 2.35, -1.35]} intensity={0.88} color="#86adc0" distance={8.6} decay={2} />
       <pointLight position={[-8.45, 2.1, -4.05]} intensity={0.56} color="#78a0bb" distance={5.5} decay={2} />
@@ -147,7 +143,7 @@ function OfficeDoor() {
   const knob = useRoughMaterial("#1f2327", "#07090b", 0.54, "none");
 
   return (
-    <group position={[-11.19, 1.04, -4.1]} rotation={[0, Math.PI / 2, 0]}>
+    <group position={[-11.19, 1.04, -4.6]} rotation={[0, Math.PI / 2, 0]}>
       <mesh position={[-0.55, 0, 0.05]} castShadow receiveShadow>
         <boxGeometry args={[0.06, 2.2, 0.08]} />
         <primitive object={frame} attach="material" />

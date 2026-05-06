@@ -3,8 +3,6 @@ import { DebugWallLabel } from "./DebugWallLabel";
 
 export function OfficeArea() {
   const wall = useRoughMaterial("#263238", "#0a1014", 0.8, "paint");
-  const floor = useRoughMaterial("#1b2328", "#0b1216", 0.84, "concrete");
-  const ceiling = useRoughMaterial("#1a2227", "#070b0f", 0.76, "paint");
   const deskWood = useRoughMaterial("#7f6650", "#24180f", 0.78, "wood");
   const deskDark = useRoughMaterial("#2a3035", "#090d11", 0.56, "none");
   const metal = useRoughMaterial("#8a96a1", "#2a333d", 0.34, "none");
@@ -14,35 +12,30 @@ export function OfficeArea() {
   const shelf = useRoughMaterial("#5b6870", "#1b232a", 0.74, "wood");
 
   return (
-    <group position={[0, 0, -6.55]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-13.1, 0.012, 2.45]} receiveShadow>
-        <planeGeometry args={[3.6, 3.0, 8, 8]} />
-        <primitive object={floor} attach="material" />
-      </mesh>
-
+    <group position={[0, 0, -7.05]}>
       <mesh position={[-13.1, 2.1, 3.95]} receiveShadow>
         {/* Wall U */}
         <boxGeometry args={[3.6, 4.2, 0.14]} />
         <primitive object={wall} attach="material" />
       </mesh>
-      <DebugWallLabel id="U" position={[-13.1, 2.1, 3.8]} />
-      <mesh position={[-13.1, 2.1, 0.95]} receiveShadow>
+      <DebugWallLabel id="U" position={[-13.1, 2.1, 3.8]} oppositePosition={[-13.1, 2.1, 4.1]} rotationY={0} />
+      <mesh position={[-13.1, 2.1, -1.05]} receiveShadow>
         {/* Wall V */}
         <boxGeometry args={[3.6, 4.2, 0.14]} />
         <primitive object={wall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="V" position={[-13.1, 2.1, 1.1]} />
-      <mesh position={[-14.9, 2.1, 2.45]} receiveShadow>
+      <DebugWallLabel id="V" position={[-13.1, 2.1, -0.9]} oppositePosition={[-13.1, 2.1, -1.2]} rotationY={0} />
+      <mesh position={[-14.9, 2.1, 1.45]} receiveShadow>
         {/* Wall W */}
-        <boxGeometry args={[0.14, 4.2, 3.0]} />
+        <boxGeometry args={[0.14, 4.2, 5.0]} />
         <primitive object={wall.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel id="W" position={[-14.74, 2.1, 2.45]} />
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[-13.1, 4.2, 2.45]} receiveShadow>
-        <planeGeometry args={[3.6, 3.0, 6, 6]} />
-        <primitive object={ceiling} attach="material" />
-      </mesh>
-
+      <DebugWallLabel
+        id="W"
+        position={[-14.74, 2.1, 1.45]}
+        oppositePosition={[-15.06, 2.1, 1.45]}
+        rotationY={Math.PI / 2}
+      />
       <group position={[-12.65, 0, 3.25]}>
         <mesh position={[-0.3, 0.74, 0]} castShadow receiveShadow>
           <boxGeometry args={[2.05, 0.09, 0.82]} />
