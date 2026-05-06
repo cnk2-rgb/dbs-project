@@ -21,7 +21,7 @@ export function OfficeArea() {
       <DebugWallLabel id="U" position={[-13.1, 2.1, 3.8]} oppositePosition={[-13.1, 2.1, 4.1]} rotationY={0} />
       <mesh position={[-13.1, 2.1, -1.05]} receiveShadow>
         {/* Wall V */}
-        <boxGeometry args={[3.6, 4.2, 0.14]} />
+        <boxGeometry args={[3.84, 4.2, 0.14]} />
         <primitive object={wall.clone()} attach="material" />
       </mesh>
       <DebugWallLabel id="V" position={[-13.1, 2.1, -0.9]} oppositePosition={[-13.1, 2.1, -1.2]} rotationY={0} />
