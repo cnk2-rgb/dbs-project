@@ -29,18 +29,18 @@ export function HallwayWing() {
         <primitive object={wallFMaterials} attach="material" />
       </mesh>
       <DebugWallLabel id="F" position={[-5.525, 2.1, -2.65]} oppositePosition={[-5.525, 2.1, -2.95]} rotationY={0} />
-      <mesh position={[-5.2, 3.4, -2.6]} receiveShadow>
-        {/* Wall H */}
-        <boxGeometry args={[1.0, 1.6, 0.14]} />
-        <primitive object={hallwayWall} attach="material" />
-      </mesh>
-      <DebugWallLabel id="H" position={[-5.2, 3.4, -2.45]} oppositePosition={[-5.2, 3.4, -2.75]} rotationY={0} />
       <mesh position={[-9.575, 2.1, -2.8]} receiveShadow>
         {/* Wall I */}
         <boxGeometry args={[0.85, 4.2, 0.14]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
       <DebugWallLabel id="I" position={[-9.575, 2.1, -2.65]} oppositePosition={[-9.575, 2.1, -2.95]} rotationY={0} />
+      <mesh position={[-10.625, 2.1, -2.8]} receiveShadow>
+        {/* Wall Y (connects left edge of I to wall O) */}
+        <boxGeometry args={[1.25, 4.2, 0.14]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
+      <DebugWallLabel id="Y" position={[-10.625, 2.1, -2.65]} oppositePosition={[-10.625, 2.1, -2.95]} rotationY={0} />
       <mesh position={[-4.9, 2.1, -5.35]} receiveShadow>
         {/* Wall Q */}
         <boxGeometry args={[0.14, 4.2, 5.1]} />
@@ -52,19 +52,6 @@ export function HallwayWing() {
         oppositePosition={[-5.07, 2.1, -5.35]}
         rotationY={Math.PI / 2}
       />
-
-      <mesh position={[-8.95, 2.1, 0.55]} receiveShadow>
-        {/* Wall J */}
-        <boxGeometry args={[2.1, 4.2, 0.14]} />
-        <primitive object={hallwayWall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel id="J" position={[-8.95, 2.1, 0.4]} oppositePosition={[-8.95, 2.1, 0.7]} rotationY={0} />
-      <mesh position={[-4.9, 2.1, 0.55]} receiveShadow>
-        {/* Wall K */}
-        <boxGeometry args={[2.8, 4.2, 0.14]} />
-        <primitive object={hallwayWall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel id="K" position={[-4.9, 2.1, 0.4]} oppositePosition={[-4.9, 2.1, 0.7]} rotationY={0} />
 
       <mesh position={[-7.42, 2.1, -7.9]} receiveShadow>
         {/* Wall M */}
@@ -105,21 +92,15 @@ export function HallwayWing() {
         oppositePosition={[-11.42, 3.5, -4.6]}
         rotationY={Math.PI / 2}
       />
-      <mesh position={[-7.725, 2.1, 6.1]} receiveShadow>
-        {/* Wall R */}
-        <boxGeometry args={[4.55, 4.2, 0.14]} />
-        <primitive object={hallwayWall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel id="R" position={[-7.725, 2.1, 5.95]} oppositePosition={[-7.725, 2.1, 6.25]} rotationY={0} />
-      <mesh position={[-10.0, 2.1, 5.325]} receiveShadow>
+      <mesh position={[-9.5, 2.1, 5.325]} receiveShadow>
         {/* Wall T (connects left edges of J and R) */}
         <boxGeometry args={[0.14, 4.2, 9.55]} />
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
       <DebugWallLabel
         id="T"
-        position={[-9.83, 2.1, 5.325]}
-        oppositePosition={[-10.17, 2.1, 5.325]}
+        position={[-9.33, 2.1, 5.325]}
+        oppositePosition={[-9.67, 2.1, 5.325]}
         rotationY={Math.PI / 2}
       />
       <mesh position={[-11.25, 2.1, 3.0]} receiveShadow>
