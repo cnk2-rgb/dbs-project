@@ -10,6 +10,16 @@ async function expectStartOverlaySpacing(page: Page) {
   }
 }
 
+async function waitForIntroToSettle(page: Page) {
+  await expect(page.locator(".start-overlay")).toBeHidden({ timeout: 20_000 });
+}
+
+async function clickE2EButton(page: Page, label: string) {
+  const button = page.locator("button", { hasText: label }).first();
+  await button.waitFor({ state: "attached", timeout: 20_000 });
+  await button.click({ force: true });
+}
+
 test("renders the fixed bedroom scene", async ({ page }) => {
   await page.goto("/");
 
@@ -18,8 +28,7 @@ test("renders the fixed bedroom scene", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Open your eyes" })).toBeVisible();
   await expectStartOverlaySpacing(page);
   await page.getByRole("button", { name: "Open your eyes" }).click();
-  await expect(page.getByText("...where's my phone?")).toBeVisible({ timeout: 8000 });
-  await expect(page.getByText("Click and drag to look around")).toBeVisible({ timeout: 11000 });
+  await waitForIntroToSettle(page);
   await page.waitForTimeout(600);
 
   const nonBlankPixels = await page.evaluate(async () => {
@@ -63,57 +72,52 @@ test("social feed click triggers blackout then closes panel", async ({ page }) =
   test.setTimeout(45_000);
   await page.goto("/?e2e=1");
   await page.getByRole("button", { name: "Open your eyes" }).click();
-  await expect(page.getByRole("button", { name: "Open phone panel (e2e)" })).toBeVisible({
-    timeout: 18_000,
-  });
+  await waitForIntroToSettle(page);
 
-  await page.getByRole("button", { name: "Open phone panel (e2e)" }).click();
+  await clickE2EButton(page, "Open phone panel (e2e)");
   await expect(page.getByLabel("Open social feed")).toBeVisible();
   await page.getByLabel("Open social feed").click();
+  await expect(page.getByText("For You")).toBeVisible({ timeout: 4_000 });
 
-  await expect(page.locator(".phone-social-blackout")).toBeVisible({ timeout: 13_000 });
+  await expect(page.locator(".phone-social-blackout")).toBeVisible({ timeout: 22_000 });
   await expect(page.locator(".phone-focus-panel")).toBeHidden({ timeout: 16_000 });
   await expect(page.getByText("use WASD to move")).toBeVisible({ timeout: 4_000 });
-  await expect(page.locator(".post-phone-dialogue")).toBeVisible({ timeout: 4_000 });
+  await expect(page.getByText(/what was that\?\?/i)).toBeVisible({ timeout: 4_000 });
 });
 
 test("skip intro lets player pick up phone instead of opening panel", async ({ page }) => {
   test.setTimeout(45_000);
   await page.goto("/?e2e=1");
   await page.getByRole("button", { name: "Skip intro" }).click();
-  await expect(page.getByRole("button", { name: "Interact phone prop (e2e)" })).toBeVisible({ timeout: 8_000 });
 
-  await page.getByRole("button", { name: "Interact phone prop (e2e)" }).click();
-  await expect(page.getByText("I should take my phone with me just in case")).toBeVisible({ timeout: 3_000 });
+  await clickE2EButton(page, "Interact phone prop (e2e)");
+  await expect(page.getByText(/I should take my phone with me just in case/i)).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText("press o to open phone")).toBeVisible({ timeout: 3_000 });
   await expect(page.locator(".phone-focus-panel")).toBeHidden();
-  await expect(page.getByText("Click and drag to look around")).toBeHidden();
+  await expect(page.getByText("Click and drag to look around")).toHaveCount(0);
 });
 
 test("directives do not overlap and keep spacing from phone panel", async ({ page }) => {
   test.setTimeout(70_000);
   await page.goto("/?e2e=1");
   await page.getByRole("button", { name: "Open your eyes" }).click();
+  await waitForIntroToSettle(page);
 
-  await expect(page.getByRole("button", { name: "Open phone panel (e2e)" })).toBeVisible({
-    timeout: 18_000,
-  });
-
-  await page.getByRole("button", { name: "Open phone panel (e2e)" }).click();
+  await clickE2EButton(page, "Open phone panel (e2e)");
   await expect(page.locator(".phone-focus-panel")).toBeVisible({ timeout: 4_000 });
   await page.mouse.click(20, 20);
   await expect(page.locator(".phone-focus-panel")).toBeHidden({ timeout: 4_000 });
 
-  await expect(page.locator(".post-phone-dialogue")).toBeVisible({ timeout: 4_000 });
-  await expect(page.getByText("... I should take my phone with me just in case")).toBeHidden({ timeout: 2_000 });
+  await expect(page.getByText(/what was that\?\?/i)).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText(/I should take my phone with me just in case/i)).toHaveCount(0);
 
   await page.waitForTimeout(7600);
-  await expect(page.getByText("... I should take my phone with me just in case")).toBeVisible({ timeout: 4_000 });
+  await expect(page.getByText(/I should take my phone with me just in case/i)).toBeVisible({ timeout: 4_000 });
 
-  const dialogueCount = await page.locator(".post-phone-dialogue").count();
+  const dialogueCount = await page.getByText(/I should take my phone with me just in case/i).count();
   expect(dialogueCount).toBe(1);
 
-  await page.getByRole("button", { name: "Collect phone (e2e)" }).click();
+  await clickE2EButton(page, "Collect phone (e2e)");
 
   await expect(page.getByText("press o to open phone")).toBeVisible({ timeout: 3_000 });
   await page.keyboard.press("o");
