@@ -1,14 +1,16 @@
 import { useRoughMaterial } from "./useRoughMaterial";
 import { DebugWallLabel } from "./DebugWallLabel";
+import { useGLTF } from "@react-three/drei";
+import { Suspense, useMemo } from "react";
+import { Mesh } from "three";
+
+const desktopComputerModelPath = "/models/stylized-computer-set-get3dmodels.glb";
 
 export function OfficeArea() {
   const wall = useRoughMaterial("#263238", "#0a1014", 0.8, "paint");
   const deskWood = useRoughMaterial("#7f6650", "#24180f", 0.78, "wood");
   const deskDark = useRoughMaterial("#2a3035", "#090d11", 0.56, "none");
   const metal = useRoughMaterial("#8a96a1", "#2a333d", 0.34, "none");
-  const monitorBody = useRoughMaterial("#1a1f25", "#05070a", 0.52, "none");
-  const monitorScreen = useRoughMaterial("#9fcbe0", "#5f9ebf", 0.26, "none");
-  const laptopBody = useRoughMaterial("#222930", "#070b0f", 0.46, "none");
   const shelf = useRoughMaterial("#5b6870", "#1b232a", 0.74, "wood");
 
   return (
@@ -58,46 +60,9 @@ export function OfficeArea() {
           <primitive object={deskDark.clone()} attach="material" />
         </mesh>
 
-        <group position={[-0.78, 0.86, -0.1]}>
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[0.62, 0.38, 0.05]} />
-            <primitive object={monitorBody} attach="material" />
-          </mesh>
-          <mesh position={[0, 0, 0.028]}>
-            <boxGeometry args={[0.54, 0.3, 0.02]} />
-            <primitive object={monitorScreen} attach="material" />
-          </mesh>
-          <mesh position={[0, -0.24, -0.02]} castShadow>
-            <boxGeometry args={[0.05, 0.21, 0.05]} />
-            <primitive object={metal} attach="material" />
-          </mesh>
-        </group>
-
-        <group position={[-0.08, 0.9, -0.08]}>
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[0.62, 0.38, 0.05]} />
-            <primitive object={monitorBody.clone()} attach="material" />
-          </mesh>
-          <mesh position={[0, 0, 0.028]}>
-            <boxGeometry args={[0.54, 0.3, 0.02]} />
-            <primitive object={monitorScreen.clone()} attach="material" />
-          </mesh>
-          <mesh position={[0, -0.24, -0.02]} castShadow>
-            <boxGeometry args={[0.05, 0.21, 0.05]} />
-            <primitive object={metal.clone()} attach="material" />
-          </mesh>
-        </group>
-
-        <group position={[0.5, 0.78, 0.08]} rotation={[0, -0.22, 0]}>
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[0.56, 0.03, 0.36]} />
-            <primitive object={laptopBody} attach="material" />
-          </mesh>
-          <mesh position={[0, 0.16, -0.16]} rotation={[1.16, 0, 0]} castShadow>
-            <boxGeometry args={[0.56, 0.02, 0.34]} />
-            <primitive object={monitorScreen.clone()} attach="material" />
-          </mesh>
-        </group>
+        <Suspense fallback={null}>
+          <DesktopComputerModel />
+        </Suspense>
 
         <group position={[0.64, 0.78, -0.2]}>
           <mesh position={[0, 0.22, 0]} castShadow>
@@ -161,6 +126,8 @@ export function OfficeArea() {
         </mesh>
       </group>
 
+      <OfficeDetails />
+
       <rectAreaLight
         position={[-13.08, 3.95, 2.46]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -169,6 +136,90 @@ export function OfficeArea() {
         intensity={10}
         color="#d9edf8"
       />
+      <pointLight position={[-12.0, 1.36, 3.02]} intensity={1.1} color="#8fd1ff" distance={2.6} decay={2} />
     </group>
   );
 }
+
+function DesktopComputerModel() {
+  const { scene } = useGLTF(desktopComputerModelPath);
+  const computer = useMemo(() => {
+    const clone = scene.clone(true);
+
+    clone.traverse((object) => {
+      if (!(object instanceof Mesh)) return;
+      object.castShadow = true;
+      object.receiveShadow = true;
+    });
+
+    return clone;
+  }, [scene]);
+
+  return <primitive object={computer} position={[-0.16, 0.76, -0.04]} rotation={[0, Math.PI, 0]} scale={0.0017} />;
+}
+
+function OfficeDetails() {
+  const fabric = useRoughMaterial("#23302f", "#0b1110", 0.94, "fabric");
+  const paper = useRoughMaterial("#cfc2a9", "#6f624d", 0.9, "paper");
+  const box = useRoughMaterial("#80694f", "#2d2118", 0.86, "paper");
+  const metal = useRoughMaterial("#7d8790", "#283039", 0.38, "none");
+  const dark = useRoughMaterial("#171c20", "#05070a", 0.62, "none");
+  const cork = useRoughMaterial("#7c6040", "#2b1d12", 0.92, "wood");
+
+  return (
+    <>
+      <mesh position={[-13.2, 0.035, 1.55]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[2.45, 2.1, 4, 4]} />
+        <primitive object={fabric} attach="material" />
+      </mesh>
+
+      <group position={[-14.25, 0.48, 0.08]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.52, 0.96, 0.64]} />
+          <primitive object={metal} attach="material" />
+        </mesh>
+        {[-0.18, 0.08, 0.34].map((y) => (
+          <mesh key={y} position={[0, y, -0.33]} castShadow>
+            <boxGeometry args={[0.34, 0.03, 0.035]} />
+            <primitive object={dark.clone()} attach="material" />
+          </mesh>
+        ))}
+      </group>
+
+      <group position={[-14.42, 1.88, 1.2]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh receiveShadow>
+          <boxGeometry args={[1.15, 0.72, 0.045]} />
+          <primitive object={cork} attach="material" />
+        </mesh>
+        {[
+          [-0.28, 0.12, 0.03],
+          [0.12, -0.06, 0.035],
+          [0.34, 0.16, 0.04],
+        ].map(([x, y, z]) => (
+          <mesh key={`${x}-${y}`} position={[x, y, z]} rotation={[0, 0, 0.08]} receiveShadow>
+            <boxGeometry args={[0.25, 0.18, 0.01]} />
+            <primitive object={paper.clone()} attach="material" />
+          </mesh>
+        ))}
+      </group>
+
+      <group position={[-13.98, 0.18, 3.08]} rotation={[0, -0.14, 0]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.58, 0.36, 0.46]} />
+          <primitive object={box} attach="material" />
+        </mesh>
+        <mesh position={[0, 0.2, -0.02]} castShadow receiveShadow>
+          <boxGeometry args={[0.62, 0.04, 0.5]} />
+          <primitive object={paper.clone()} attach="material" />
+        </mesh>
+      </group>
+
+      <mesh position={[-13.5, 1.09, 3.25]} rotation={[-Math.PI / 2, 0, -0.12]} castShadow receiveShadow>
+        <boxGeometry args={[0.42, 0.62, 0.018]} />
+        <primitive object={paper.clone()} attach="material" />
+      </mesh>
+    </>
+  );
+}
+
+useGLTF.preload(desktopComputerModelPath);

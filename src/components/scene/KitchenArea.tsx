@@ -127,7 +127,109 @@ export function KitchenArea() {
         <KitchenChair position={[0.62, 0, 1.14]} rotation={Math.PI} />
         <KitchenChair position={[-0.62, 0, -0.14]} rotation={0} />
         <KitchenChair position={[0.62, 0, -0.14]} rotation={0} />
+
+        <KitchenAppliances />
+        <KitchenCounterDetails />
       </group>
+
+      <rectAreaLight
+        position={[-6.25, 3.65, 5.8]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        width={2.4}
+        height={1.1}
+        intensity={9}
+        color="#fff2d1"
+      />
+      <pointLight position={[-7.15, 1.45, 6.48]} intensity={1.2} color="#ffe8ba" distance={2.4} decay={2} />
+    </>
+  );
+}
+
+function KitchenAppliances() {
+  const fridge = useRoughMaterial("#dce3e6", "#7d8588", 0.3, "none");
+  const dark = useRoughMaterial("#1c2022", "#060708", 0.58, "none");
+  const metal = useRoughMaterial("#9fa8ad", "#3b4246", 0.28, "none");
+  const tile = useRoughMaterial("#e2ddd1", "#69645c", 0.7, "concrete");
+
+  return (
+    <>
+      <group position={[2.8, 1.05, 2.05]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.72, 2.1, 0.72]} />
+          <primitive object={fridge} attach="material" />
+        </mesh>
+        <mesh position={[0.01, 0.28, -0.37]} castShadow>
+          <boxGeometry args={[0.06, 1.18, 0.04]} />
+          <primitive object={metal} attach="material" />
+        </mesh>
+        <mesh position={[0.01, -0.62, -0.37]} castShadow>
+          <boxGeometry args={[0.06, 0.44, 0.04]} />
+          <primitive object={metal.clone()} attach="material" />
+        </mesh>
+      </group>
+
+      <group position={[1.35, 1.17, 3.45]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.72, 0.34, 0.28]} />
+          <primitive object={dark} attach="material" />
+        </mesh>
+        <mesh position={[0, -0.03, -0.15]} castShadow>
+          <boxGeometry args={[0.56, 0.17, 0.03]} />
+          <primitive object={metal.clone()} attach="material" />
+        </mesh>
+      </group>
+
+      <group position={[0.9, 1.12, 3.12]}>
+        {[-0.16, 0.16].map((x) =>
+          [-0.1, 0.14].map((z) => (
+            <mesh key={`${x}-${z}`} position={[x, 0.02, z]} rotation={[Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[0.11, 0.011, 8, 20]} />
+              <primitive object={dark.clone()} attach="material" />
+            </mesh>
+          )),
+        )}
+      </group>
+
+      <group position={[-0.1, 1.36, 3.48]}>
+        {[-1.08, -0.72, -0.36, 0, 0.36, 0.72, 1.08].map((x) => (
+          <mesh key={x} position={[x, 0, 0]} receiveShadow>
+            <boxGeometry args={[0.28, 0.32, 0.035]} />
+            <primitive object={tile.clone()} attach="material" />
+          </mesh>
+        ))}
+      </group>
+    </>
+  );
+}
+
+function KitchenCounterDetails() {
+  const ceramic = useRoughMaterial("#e7e2d5", "#756f65", 0.66, "concrete");
+  const glass = useRoughMaterial("#88b8c8", "#2e5965", 0.18, "none");
+  const paper = useRoughMaterial("#d7cbb6", "#6f624f", 0.92, "paper");
+  const dark = useRoughMaterial("#2a2f34", "#0a0d10", 0.46, "none");
+
+  return (
+    <>
+      <group position={[-1.25, 1.1, 3.0]}>
+        {[0, 0.06, 0.12].map((y) => (
+          <mesh key={y} position={[0, y, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.18, 0.18, 0.025, 24]} />
+            <primitive object={ceramic.clone()} attach="material" />
+          </mesh>
+        ))}
+      </group>
+      <mesh position={[-1.82, 1.17, 3.04]} rotation={[0.18, 0, 0.1]} castShadow receiveShadow>
+        <boxGeometry args={[0.42, 0.03, 0.32]} />
+        <primitive object={paper} attach="material" />
+      </mesh>
+      <mesh position={[-0.18, 1.18, 3.08]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.12, 0.12, 0.22, 18]} />
+        <primitive object={glass} attach="material" />
+      </mesh>
+      <mesh position={[0.34, 0.56, 0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.52, 0.04, 0.34]} />
+        <primitive object={dark} attach="material" />
+      </mesh>
     </>
   );
 }

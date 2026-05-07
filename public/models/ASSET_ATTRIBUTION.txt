@@ -1,0 +1,18 @@
+Downloaded model assets:
+
+- antique-wooden-piano-get3dmodels.glb
+  Source page: https://www.getglb.com/art-and-sculptures/antique-wooden-piano/
+  Direct file: https://www.get3dmodels.com/download/wild_west_style_wooden_piano_by_get3dmodels.glb
+  Listed author: Lipi de Souza
+  Listed license: Free Standard
+
+- stylized-computer-set-get3dmodels.glb
+  Source page: https://www.getglb.com/robot/stylized-computer-set/
+  Direct file: https://www.get3dmodels.com/download/Computer_3_by_get3dmodels.glb
+  Listed author: Poly by Google
+  Listed license: CC Attribution
+
+- phone-quaternius-public-domain.glb
+  Source page: https://www.get3dmodels.com/tools-and-gadgets/phone/
+  Listed author: Quaternius
+  Listed license: Public domain
