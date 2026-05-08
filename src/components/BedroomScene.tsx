@@ -4,6 +4,7 @@ import { EffectComposer, Vignette } from "@react-three/postprocessing";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import { HallwayWing } from "./scene/HallwayWing";
+import { BatteryPackField } from "./scene/BatteryPackField";
 import { DebugWallLabel } from "./scene/DebugWallLabel";
 import { useRoughMaterial } from "./scene/useRoughMaterial";
 import {
@@ -45,10 +46,14 @@ export function BedroomScene({
   phonePanelActive,
   phoneSelected,
   phoneInInventory,
+  gameplayStarted,
+  collectedPackIds,
   doorOpen,
   onSelectPhone,
   onTurnOnPhone,
   onPickupPhone,
+  onCollectPack,
+  onEnterHallway,
   skipIntroUsed,
   onToggleDoor,
   inputLocked,
@@ -62,10 +67,14 @@ export function BedroomScene({
   phonePanelActive: boolean;
   phoneSelected: boolean;
   phoneInInventory: boolean;
+  gameplayStarted: boolean;
+  collectedPackIds: string[];
   doorOpen: boolean;
   onSelectPhone: () => void;
   onTurnOnPhone: () => void;
   onPickupPhone: () => void;
+  onCollectPack: (packId: string) => void;
+  onEnterHallway: () => void;
   skipIntroUsed: boolean;
   onToggleDoor: () => void;
   inputLocked: boolean;
@@ -84,6 +93,7 @@ export function BedroomScene({
         phonePanelActive={phonePanelActive}
         doorInteractionTick={doorInteractionTick}
         returnToPhoneTick={returnToPhoneTick}
+        onEnterHallway={onEnterHallway}
       />
       <hemisphereLight intensity={0.68} color="#9fb4ba" groundColor="#1d1612" />
       <ambientLight intensity={0.5} color="#879ba5" />
@@ -101,6 +111,11 @@ export function BedroomScene({
 
       <RoomShell doorOpen={doorOpen} onToggleDoor={onToggleDoor} />
       <HallwayWing />
+      <BatteryPackField
+        visible={gameplayStarted}
+        collectedPackIds={collectedPackIds}
+        onCollectPack={onCollectPack}
+      />
       <Bed />
       <Furniture
         phoneOn={phoneOn}
@@ -128,6 +143,7 @@ function LookOnlyCamera({
   phonePanelActive,
   doorInteractionTick,
   returnToPhoneTick,
+  onEnterHallway,
 }: {
   enabled: boolean;
   canMove: boolean;
@@ -136,6 +152,7 @@ function LookOnlyCamera({
   phonePanelActive: boolean;
   doorInteractionTick: number;
   returnToPhoneTick: number;
+  onEnterHallway: () => void;
 }) {
   const { camera, gl } = useThree();
   const yaw = useRef(0);
@@ -149,6 +166,7 @@ function LookOnlyCamera({
   const rightDirection = useRef(new Vector3());
   const returnCameraUntil = useRef(0);
   const freezeMovementUntil = useRef(0);
+  const hallwayTriggered = useRef(false);
 
   useEffect(() => {
     if (returnToPhoneTick <= 0) return;
@@ -248,6 +266,11 @@ function LookOnlyCamera({
     }
 
     camera.position.copy(position.current);
+
+    if (!hallwayTriggered.current && position.current.x < -3.35 && position.current.z < 2.15) {
+      hallwayTriggered.current = true;
+      onEnterHallway();
+    }
   });
 
   useEffect(() => {

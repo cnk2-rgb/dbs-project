@@ -17,16 +17,20 @@ export function PhonePanelOverlay({
   phoneNumber,
   lockscreenImageUrl,
   displayTime,
+  isDefenseMode,
   onOpenSocial,
   onUnlock,
+  onDefenseSuccess,
   onCloseAndReturn,
 }: {
   screen: Exclude<PhonePanelScreen, null>;
   phoneNumber: string;
   lockscreenImageUrl: string | null;
   displayTime: string;
+  isDefenseMode: boolean;
   onOpenSocial: () => void;
   onUnlock: () => void;
+  onDefenseSuccess: () => void;
   onCloseAndReturn: () => void;
 }) {
   const [dragging, setDragging] = useState(false);
@@ -62,7 +66,11 @@ export function PhonePanelOverlay({
       setProgress(next);
       if (next >= 0.95) {
         setDragging(false);
-        onUnlock();
+        if (isDefenseMode) {
+          onDefenseSuccess();
+        } else {
+          onUnlock();
+        }
       }
     };
 
@@ -77,7 +85,7 @@ export function PhonePanelOverlay({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [dragging, onUnlock, screen]);
+  }, [dragging, isDefenseMode, onDefenseSuccess, onUnlock, screen]);
 
   useEffect(() => {
     if (screen !== "social") {
@@ -132,6 +140,7 @@ export function PhonePanelOverlay({
     <div
       className="phone-focus-overlay"
       onPointerDown={() => {
+        if (isDefenseMode) return;
         onCloseAndReturn();
       }}
     >
@@ -143,6 +152,7 @@ export function PhonePanelOverlay({
       >
         {screen === "lock" ? (
           <div className="phone-lock-screen">
+            {isDefenseMode && <div className="phone-defense-badge">defend now</div>}
             <div className="phone-focus-status">
               <span>9:41</span>
               <div className="phone-focus-island" aria-hidden="true" />

@@ -1,6 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Color } from "three";
+import { GameplayHud } from "./components/GameplayHud";
 import { BedroomScene } from "./components/BedroomScene";
 import { PhonePanelOverlay, advancePhoneTimeByHour } from "./components/PhonePanelOverlay";
 import {
@@ -11,6 +12,16 @@ import {
   playPhoneUnlockClick,
 } from "./lib/audio";
 import type { IntroPhase, PhonePanelScreen, YouTubePlayer } from "./types/app";
+import {
+  DEFENSE_OPEN_COST_SECONDS,
+  PACK_CHARGE_SECONDS,
+  PHASE_FLASH_MS,
+  REQUIRED_PACKS,
+  STARTING_LIVES,
+  WARNING_WINDOW_MS,
+  type GameplayPhase,
+  randomAttackDelayMs,
+} from "./lib/gameplay";
 const smsWebhookUrl = (import.meta.env.VITE_SMS_WEBHOOK_URL ?? "").trim();
 const smsFromNumber = (import.meta.env.VITE_TWILIO_FROM_NUMBER ?? "").trim();
 const inventoryWebhookUrl = (import.meta.env.VITE_INVENTORY_WEBHOOK_URL ?? "").trim();
@@ -43,8 +54,21 @@ function App() {
   const [closePhoneHintVisible, setClosePhoneHintVisible] = useState(false);
   const [hasOpenedInventoryPhone, setHasOpenedInventoryPhone] = useState(false);
   const [skipIntroUsed, setSkipIntroUsed] = useState(false);
+  const [gameplayStarted, setGameplayStarted] = useState(false);
+  const [gameplayPhase, setGameplayPhase] = useState<GameplayPhase>("bedroom");
+  const [lives, setLives] = useState(STARTING_LIVES);
+  const [packsCollected, setPacksCollected] = useState(0);
+  const [phoneChargeSeconds, setPhoneChargeSeconds] = useState(0);
+  const [collectedPackIds, setCollectedPackIds] = useState<string[]>([]);
+  const [phoneDefenseMode, setPhoneDefenseMode] = useState(false);
   const youtubePlayerRef = useRef<YouTubePlayer | null>(null);
   const youtubeReadyRef = useRef(false);
+  const attackTimerRef = useRef<number | null>(null);
+  const warningTimerRef = useRef<number | null>(null);
+  const attackResolveTimerRef = useRef<number | null>(null);
+  const defenseFlashTimerRef = useRef<number | null>(null);
+  const gameplayStartedRef = useRef(false);
+  const gameplayPhaseRef = useRef<GameplayPhase>("bedroom");
 
   const collectPhoneFromTable = ({
     showFollowupDialogue,
@@ -211,15 +235,200 @@ function App() {
     };
   }, [playerPhotoUrl]);
 
+  useEffect(() => {
+    gameplayStartedRef.current = gameplayStarted;
+  }, [gameplayStarted]);
+
+  useEffect(() => {
+    gameplayPhaseRef.current = gameplayPhase;
+  }, [gameplayPhase]);
+
+  useEffect(() => {
+    if (!gameplayStartedRef.current || !phoneOn || phoneChargeSeconds <= 0) return;
+
+    const drainTimer = window.setInterval(() => {
+      setPhoneChargeSeconds((current) => {
+        if (current <= 1) {
+          window.clearInterval(drainTimer);
+          window.setTimeout(() => {
+            if (phoneDefenseMode && (gameplayPhaseRef.current === "monster_warning" || gameplayPhaseRef.current === "phone_unlock")) {
+              resolveMonsterAttack();
+              return;
+            }
+
+            playPhoneCloseClick();
+            setPhoneDefenseMode(false);
+            setPhonePanelScreen(null);
+            setPhoneOn(false);
+          }, 0);
+          return 0;
+        }
+
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(drainTimer);
+    };
+  }, [gameplayStarted, phoneChargeSeconds, phoneDefenseMode, phoneOn]);
+
+  const clearTimer = (timerRef: { current: number | null }) => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const clearGameplayTimers = () => {
+    clearTimer(attackTimerRef);
+    clearTimer(warningTimerRef);
+    clearTimer(attackResolveTimerRef);
+    clearTimer(defenseFlashTimerRef);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearGameplayTimers();
+    };
+  }, []);
+
+  const setGameplayPhaseSafely = (nextPhase: GameplayPhase) => {
+    gameplayPhaseRef.current = nextPhase;
+    setGameplayPhase(nextPhase);
+  };
+
+  const scheduleNextMonsterAttack = () => {
+    clearTimer(attackTimerRef);
+
+    if (!gameplayStartedRef.current) return;
+    if (gameplayPhaseRef.current === "day_complete" || gameplayPhaseRef.current === "game_over") return;
+
+    attackTimerRef.current = window.setTimeout(() => {
+      clearTimer(attackTimerRef);
+      if (!gameplayStartedRef.current) return;
+      if (gameplayPhaseRef.current !== "exploring") return;
+
+      setGameplayPhaseSafely("monster_warning");
+      clearTimer(warningTimerRef);
+      warningTimerRef.current = window.setTimeout(() => {
+        if (!gameplayStartedRef.current) return;
+        if (gameplayPhaseRef.current === "monster_warning" || gameplayPhaseRef.current === "phone_unlock") {
+          resolveMonsterAttack();
+        }
+      }, WARNING_WINDOW_MS);
+    }, randomAttackDelayMs());
+  };
+
+  const resolveMonsterAttack = () => {
+    clearTimer(attackTimerRef);
+    clearTimer(warningTimerRef);
+    clearTimer(attackResolveTimerRef);
+    setPhoneDefenseMode(false);
+    setPhonePanelScreen(null);
+    setPhoneOn(false);
+    setGameplayPhaseSafely("monster_attack");
+
+    let nextLives = 0;
+    setLives((current) => {
+      nextLives = Math.max(current - 1, 0);
+      return nextLives;
+    });
+
+    attackResolveTimerRef.current = window.setTimeout(() => {
+      clearTimer(attackResolveTimerRef);
+      if (nextLives <= 0) {
+        clearGameplayTimers();
+        setGameplayPhaseSafely("game_over");
+        return;
+      }
+
+      if (gameplayPhaseRef.current !== "monster_attack") return;
+      setGameplayPhaseSafely("exploring");
+      scheduleNextMonsterAttack();
+    }, PHASE_FLASH_MS);
+  };
+
+  const triggerDefenseSuccess = () => {
+    clearTimer(attackTimerRef);
+    clearTimer(warningTimerRef);
+    clearTimer(attackResolveTimerRef);
+    setPhoneDefenseMode(false);
+    setPhonePanelScreen(null);
+    setPhoneOn(false);
+    setGameplayPhaseSafely("defense_successful");
+
+    defenseFlashTimerRef.current = window.setTimeout(() => {
+      clearTimer(defenseFlashTimerRef);
+      if (gameplayPhaseRef.current !== "defense_successful") return;
+      setGameplayPhaseSafely("exploring");
+      scheduleNextMonsterAttack();
+    }, PHASE_FLASH_MS);
+  };
+
+  const startGameplay = () => {
+    if (gameplayStartedRef.current) return;
+    gameplayStartedRef.current = true;
+    setGameplayStarted(true);
+    setGameplayPhaseSafely("exploring");
+    window.setTimeout(() => {
+      if (gameplayStartedRef.current && gameplayPhaseRef.current === "exploring") {
+        scheduleNextMonsterAttack();
+      }
+    }, 0);
+  };
+
+  const collectBatteryPack = (packId: string) => {
+    if (collectedPackIds.includes(packId)) return;
+    setCollectedPackIds((current) => (current.includes(packId) ? current : [...current, packId]));
+    setPacksCollected((current) => {
+      const next = current + 1;
+      if (next >= REQUIRED_PACKS) {
+        clearGameplayTimers();
+        setPhoneDefenseMode(false);
+        setPhoneOn(false);
+        setPhonePanelScreen(null);
+        setGameplayPhaseSafely("day_complete");
+      }
+      return next;
+    });
+    setPhoneChargeSeconds((current) => current + PACK_CHARGE_SECONDS);
+  };
+
   const introActive = introPhase !== "active";
   const panelActive = phonePanelScreen !== null;
+  const gameplayFrozen = gameplayPhase === "monster_attack" || gameplayPhase === "defense_successful";
+  const gameplayFinished = gameplayPhase === "day_complete" || gameplayPhase === "game_over";
   const controlsLocked =
-    panelActive || introActive || wakeDialogVisible || postPhoneDialogueVisible || postPhoneFollowupDialogueVisible || doorDialogueVisible;
+    panelActive ||
+    introActive ||
+    wakeDialogVisible ||
+    postPhoneDialogueVisible ||
+    postPhoneFollowupDialogueVisible ||
+    doorDialogueVisible ||
+    gameplayFrozen ||
+    gameplayFinished;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "KeyO") return;
       if (!isAwake || introPhase !== "active") return;
+      if (
+        gameplayStartedRef.current &&
+        gameplayPhaseRef.current === "monster_warning" &&
+        phoneInInventory &&
+        phonePanelScreen === null &&
+        phoneChargeSeconds >= DEFENSE_OPEN_COST_SECONDS
+      ) {
+        event.preventDefault();
+        playPhoneOpenClick();
+        setPhoneOn(true);
+        setPhoneDefenseMode(true);
+        setPhonePanelScreen("lock");
+        setPhoneOpenHintVisible(false);
+        setGameplayPhaseSafely("phone_unlock");
+        return;
+      }
       if (!phoneInInventory || panelActive) return;
 
       event.preventDefault();
@@ -239,7 +448,7 @@ function App() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [hasOpenedInventoryPhone, introPhase, isAwake, panelActive, phoneInInventory]);
+  }, [hasOpenedInventoryPhone, introPhase, isAwake, panelActive, phoneInInventory, phoneChargeSeconds, phonePanelScreen]);
 
   return (
     <main className="app-shell">
@@ -257,6 +466,7 @@ function App() {
           onPointerMissed={() => {
             if (isAwake) {
               if (phoneInInventory && phonePanelScreen) {
+                if (phoneDefenseMode) return;
                 playPhoneCloseClick();
                 setPhonePanelScreen(null);
                 setPhoneOn(false);
@@ -278,6 +488,8 @@ function App() {
             phonePanelActive={panelActive}
             phoneSelected={phoneSelected}
             phoneInInventory={phoneInInventory}
+            gameplayStarted={gameplayStarted}
+            collectedPackIds={collectedPackIds}
             doorOpen={doorOpen}
             onSelectPhone={() => {
               if (skipIntroUsed) {
@@ -296,6 +508,8 @@ function App() {
             onPickupPhone={() => {
               collectPhoneFromTable({ showFollowupDialogue: skipIntroUsed, unlockMovement: skipIntroUsed });
             }}
+            onCollectPack={collectBatteryPack}
+            onEnterHallway={startGameplay}
             skipIntroUsed={skipIntroUsed}
             onToggleDoor={() => {
               setDoorInteractionTick((value) => value + 1);
@@ -319,6 +533,28 @@ function App() {
       </div>
 
       <div className="sleep-vignette" />
+      {isAwake && introPhase === "active" && (
+        <GameplayHud
+          phase={gameplayPhase}
+          lives={lives}
+          packsCollected={packsCollected}
+          packsRequired={REQUIRED_PACKS}
+          phoneChargeSeconds={phoneChargeSeconds}
+        />
+      )}
+
+      {isAwake && introPhase === "active" && gameplayPhase === "monster_warning" && (
+        <div className="gameplay-overlay gameplay-overlay-warning" aria-hidden="true" />
+      )}
+      {isAwake && introPhase === "active" && gameplayPhase === "phone_unlock" && (
+        <div className="gameplay-overlay gameplay-overlay-defense" aria-hidden="true" />
+      )}
+      {isAwake && introPhase === "active" && gameplayPhase === "monster_attack" && (
+        <div className="gameplay-overlay gameplay-overlay-attack" aria-hidden="true" />
+      )}
+      {isAwake && introPhase === "active" && gameplayPhase === "defense_successful" && (
+        <div className="gameplay-overlay gameplay-overlay-success" aria-hidden="true" />
+      )}
 
       {introPhase === "flicker" && <div className="intro-blackout intro-blackout-flicker" />}
       {introPhase === "pan" && <div className="intro-blackout intro-blackout-pan" />}
@@ -472,6 +708,7 @@ function App() {
           phoneNumber={playerPhoneNumber}
           lockscreenImageUrl={playerPhotoUrl}
           displayTime={phoneDisplayTime}
+          isDefenseMode={phoneDefenseMode}
           onOpenSocial={() => {
             playPhoneTapClick();
             setPhonePanelScreen("social");
@@ -479,11 +716,18 @@ function App() {
           onUnlock={() => {
             playPhoneUnlockClick();
             setPhoneUnlocked(true);
+            setPhoneDefenseMode(false);
             setPhonePanelScreen("home");
             void sendUnlockText(playerPhoneNumber);
           }}
+          onDefenseSuccess={() => {
+            playPhoneUnlockClick();
+            triggerDefenseSuccess();
+          }}
           onCloseAndReturn={() => {
+            if (phoneDefenseMode) return;
             playPhoneCloseClick();
+            setPhoneDefenseMode(false);
             setPhonePanelScreen(null);
             setPhoneOn(false);
             setPhoneSelected(true);
@@ -503,6 +747,28 @@ function App() {
             }
           }}
         />
+      )}
+
+      {isAwake && introPhase === "active" && gameplayFinished && (
+        <div className="gameplay-finish-overlay" aria-live="polite">
+          <div className="gameplay-finish-card">
+            <div className="gameplay-finish-title">
+              {gameplayPhase === "day_complete" ? "day complete" : "game over"}
+            </div>
+            <div className="gameplay-finish-copy">
+              {gameplayPhase === "day_complete"
+                ? "You got all six battery packs and made it through."
+                : "The monster broke through your last life."}
+            </div>
+            <button
+              type="button"
+              className="wake-button gameplay-restart-button"
+              onClick={() => window.location.reload()}
+            >
+              restart
+            </button>
+          </div>
+        </div>
       )}
     </main>
   );
