@@ -6,6 +6,7 @@ import { BedroomScene } from "./components/BedroomScene";
 import { PhonePanelOverlay, advancePhoneTimeByHour } from "./components/PhonePanelOverlay";
 import {
   playPhoneCloseClick,
+  playMonsterJumpscare,
   playPhoneOpenClick,
   playPhonePickupClick,
   playPhoneTapClick,
@@ -14,6 +15,7 @@ import {
 import type { IntroPhase, PhonePanelScreen, YouTubePlayer } from "./types/app";
 import {
   DEFENSE_OPEN_COST_SECONDS,
+  FIRST_ATTACK_DELAY_MS,
   PACK_CHARGE_SECONDS,
   PHASE_FLASH_MS,
   REQUIRED_PACKS,
@@ -25,6 +27,20 @@ import {
 const smsWebhookUrl = (import.meta.env.VITE_SMS_WEBHOOK_URL ?? "").trim();
 const smsFromNumber = (import.meta.env.VITE_TWILIO_FROM_NUMBER ?? "").trim();
 const inventoryWebhookUrl = (import.meta.env.VITE_INVENTORY_WEBHOOK_URL ?? "").trim();
+const monsterJumpscareImages = [
+  new URL("../monsters/monster-chatgpt-evil.png", import.meta.url).href,
+  new URL("../monsters/monster-chatgpt-silent.png", import.meta.url).href,
+  new URL("../monsters/monster-sad.jpeg", import.meta.url).href,
+];
+
+type E2EGameplayPreset =
+  | "exploring"
+  | "monster_warning"
+  | "phone_unlock"
+  | "monster_attack"
+  | "defense_successful"
+  | "day_complete"
+  | "game_over";
 
 function App() {
   const e2eMode = useMemo(() => {
@@ -61,12 +77,15 @@ function App() {
   const [phoneChargeSeconds, setPhoneChargeSeconds] = useState(0);
   const [collectedPackIds, setCollectedPackIds] = useState<string[]>([]);
   const [phoneDefenseMode, setPhoneDefenseMode] = useState(false);
+  const [showDefenseHint, setShowDefenseHint] = useState(false);
+  const [monsterJumpscare, setMonsterJumpscare] = useState<{ id: number; imageUrl: string } | null>(null);
   const youtubePlayerRef = useRef<YouTubePlayer | null>(null);
   const youtubeReadyRef = useRef(false);
   const attackTimerRef = useRef<number | null>(null);
   const warningTimerRef = useRef<number | null>(null);
   const attackResolveTimerRef = useRef<number | null>(null);
   const defenseFlashTimerRef = useRef<number | null>(null);
+  const monsterJumpscareTimerRef = useRef<number | null>(null);
   const gameplayStartedRef = useRef(false);
   const gameplayPhaseRef = useRef<GameplayPhase>("bedroom");
 
@@ -285,6 +304,7 @@ function App() {
     clearTimer(warningTimerRef);
     clearTimer(attackResolveTimerRef);
     clearTimer(defenseFlashTimerRef);
+    clearTimer(monsterJumpscareTimerRef);
   };
 
   useEffect(() => {
@@ -298,7 +318,97 @@ function App() {
     setGameplayPhase(nextPhase);
   };
 
-  const scheduleNextMonsterAttack = () => {
+  const setE2EGameplayPreset = (preset: E2EGameplayPreset) => {
+    clearGameplayTimers();
+    gameplayStartedRef.current = true;
+    setGameplayStarted(true);
+    setIsAwake(true);
+    setIntroPhase("active");
+    setHasInteracted(true);
+    setWakeDialogVisible(false);
+    setPostPhoneDialogueVisible(false);
+    setPostPhoneFollowupDialogueVisible(false);
+    setDoorDialogueVisible(false);
+    setPhoneSelected(false);
+    setPhoneOpenHintVisible(false);
+    setClosePhoneHintVisible(false);
+    setPhonePanelScreen(null);
+    setPhoneOn(false);
+    setPhoneDefenseMode(false);
+    setShowDefenseHint(false);
+    setMonsterJumpscare(null);
+
+    switch (preset) {
+      case "exploring":
+        setPhoneInInventory(false);
+        setPhoneUnlocked(false);
+        setLives(STARTING_LIVES);
+        setPacksCollected(0);
+        setPhoneChargeSeconds(0);
+        setGameplayPhaseSafely("exploring");
+        break;
+      case "monster_warning":
+        setPhoneInInventory(true);
+        setPhoneUnlocked(true);
+        setLives(STARTING_LIVES);
+        setPacksCollected(0);
+        setPhoneChargeSeconds(20);
+        setShowDefenseHint(false);
+        setGameplayPhaseSafely("monster_warning");
+        break;
+      case "phone_unlock":
+        setPhoneInInventory(true);
+        setPhoneUnlocked(true);
+        setLives(STARTING_LIVES);
+        setPacksCollected(0);
+        setPhoneChargeSeconds(20);
+        setPhoneOn(true);
+        setPhoneDefenseMode(true);
+        setShowDefenseHint(false);
+        setPhonePanelScreen("lock");
+        setGameplayPhaseSafely("phone_unlock");
+        break;
+      case "monster_attack":
+        setPhoneInInventory(true);
+        setPhoneUnlocked(true);
+        setLives(2);
+        setPacksCollected(0);
+        setPhoneChargeSeconds(0);
+        setShowDefenseHint(false);
+        setGameplayPhaseSafely("monster_attack");
+        break;
+      case "defense_successful":
+        setPhoneInInventory(true);
+        setPhoneUnlocked(true);
+        setLives(2);
+        setPacksCollected(0);
+        setPhoneChargeSeconds(0);
+        setShowDefenseHint(false);
+        setGameplayPhaseSafely("defense_successful");
+        break;
+      case "day_complete":
+        setPhoneInInventory(true);
+        setPhoneUnlocked(true);
+        setLives(STARTING_LIVES);
+        setPacksCollected(REQUIRED_PACKS);
+        setPhoneChargeSeconds(60);
+        setShowDefenseHint(false);
+        setGameplayPhaseSafely("day_complete");
+        break;
+      case "game_over":
+        setPhoneInInventory(true);
+        setPhoneUnlocked(true);
+        setLives(0);
+        setPacksCollected(0);
+        setPhoneChargeSeconds(0);
+        setShowDefenseHint(false);
+        setMonsterJumpscare(null);
+        setGameplayPhaseSafely("game_over");
+        break;
+    }
+  };
+
+  const scheduleMonsterAttack = (initialAttack: boolean) => {
     clearTimer(attackTimerRef);
 
     if (!gameplayStartedRef.current) return;
@@ -309,6 +419,9 @@ function App() {
       if (!gameplayStartedRef.current) return;
       if (gameplayPhaseRef.current !== "exploring") return;
 
+      if (initialAttack) {
+        setShowDefenseHint(true);
+      }
       setGameplayPhaseSafely("monster_warning");
       clearTimer(warningTimerRef);
       warningTimerRef.current = window.setTimeout(() => {
@@ -317,16 +430,25 @@ function App() {
           resolveMonsterAttack();
         }
       }, WARNING_WINDOW_MS);
-    }, randomAttackDelayMs());
+    }, initialAttack ? FIRST_ATTACK_DELAY_MS : randomAttackDelayMs());
   };
 
   const resolveMonsterAttack = () => {
     clearTimer(attackTimerRef);
     clearTimer(warningTimerRef);
     clearTimer(attackResolveTimerRef);
+    clearTimer(monsterJumpscareTimerRef);
     setPhoneDefenseMode(false);
+    setShowDefenseHint(false);
     setPhonePanelScreen(null);
     setPhoneOn(false);
+    const imageUrl = monsterJumpscareImages[Math.floor(Math.random() * monsterJumpscareImages.length)];
+    setMonsterJumpscare({ id: Date.now(), imageUrl });
+    playMonsterJumpscare();
+    monsterJumpscareTimerRef.current = window.setTimeout(() => {
+      setMonsterJumpscare(null);
+      clearTimer(monsterJumpscareTimerRef);
+    }, 1000);
     setGameplayPhaseSafely("monster_attack");
 
     let nextLives = 0;
@@ -345,7 +467,7 @@ function App() {
 
       if (gameplayPhaseRef.current !== "monster_attack") return;
       setGameplayPhaseSafely("exploring");
-      scheduleNextMonsterAttack();
+      scheduleMonsterAttack(false);
     }, PHASE_FLASH_MS);
   };
 
@@ -353,16 +475,19 @@ function App() {
     clearTimer(attackTimerRef);
     clearTimer(warningTimerRef);
     clearTimer(attackResolveTimerRef);
+    clearTimer(monsterJumpscareTimerRef);
     setPhoneDefenseMode(false);
+    setShowDefenseHint(false);
     setPhonePanelScreen(null);
     setPhoneOn(false);
+    setMonsterJumpscare(null);
     setGameplayPhaseSafely("defense_successful");
 
     defenseFlashTimerRef.current = window.setTimeout(() => {
       clearTimer(defenseFlashTimerRef);
       if (gameplayPhaseRef.current !== "defense_successful") return;
       setGameplayPhaseSafely("exploring");
-      scheduleNextMonsterAttack();
+      scheduleMonsterAttack(false);
     }, PHASE_FLASH_MS);
   };
 
@@ -373,7 +498,7 @@ function App() {
     setGameplayPhaseSafely("exploring");
     window.setTimeout(() => {
       if (gameplayStartedRef.current && gameplayPhaseRef.current === "exploring") {
-        scheduleNextMonsterAttack();
+        scheduleMonsterAttack(true);
       }
     }, 0);
   };
@@ -386,12 +511,13 @@ function App() {
       if (next >= REQUIRED_PACKS) {
         clearGameplayTimers();
         setPhoneDefenseMode(false);
-        setPhoneOn(false);
-        setPhonePanelScreen(null);
-        setGameplayPhaseSafely("day_complete");
-      }
-      return next;
-    });
+            setPhoneOn(false);
+            setPhonePanelScreen(null);
+            setGameplayPhaseSafely("day_complete");
+            setMonsterJumpscare(null);
+        }
+        return next;
+      });
     setPhoneChargeSeconds((current) => current + PACK_CHARGE_SECONDS);
   };
 
@@ -399,6 +525,7 @@ function App() {
   const panelActive = phonePanelScreen !== null;
   const gameplayFrozen = gameplayPhase === "monster_attack" || gameplayPhase === "defense_successful";
   const gameplayFinished = gameplayPhase === "day_complete" || gameplayPhase === "game_over";
+  const visiblePackCount = Math.min(Math.max(2, packsCollected + 2), REQUIRED_PACKS);
   const controlsLocked =
     panelActive ||
     introActive ||
@@ -489,6 +616,7 @@ function App() {
             phoneSelected={phoneSelected}
             phoneInInventory={phoneInInventory}
             gameplayStarted={gameplayStarted}
+            visiblePackCount={visiblePackCount}
             collectedPackIds={collectedPackIds}
             doorOpen={doorOpen}
             onSelectPhone={() => {
@@ -554,6 +682,14 @@ function App() {
       )}
       {isAwake && introPhase === "active" && gameplayPhase === "defense_successful" && (
         <div className="gameplay-overlay gameplay-overlay-success" aria-hidden="true" />
+      )}
+      {isAwake && introPhase === "active" && monsterJumpscare && (
+        <div
+          key={monsterJumpscare.id}
+          className="monster-jumpscare-overlay"
+          aria-hidden="true"
+          style={{ backgroundImage: `url(${monsterJumpscare.imageUrl})` }}
+        />
       )}
 
       {introPhase === "flicker" && <div className="intro-blackout intro-blackout-flicker" />}
@@ -699,6 +835,29 @@ function App() {
           >
             Collect phone (e2e)
           </button>
+          <div className="e2e-gameplay-controls" aria-label="Gameplay state controls">
+            <button type="button" onClick={() => setE2EGameplayPreset("exploring")}>
+              Set exploring
+            </button>
+            <button type="button" onClick={() => setE2EGameplayPreset("monster_warning")}>
+              Set warning
+            </button>
+            <button type="button" onClick={() => setE2EGameplayPreset("phone_unlock")}>
+              Set unlock
+            </button>
+            <button type="button" onClick={() => setE2EGameplayPreset("monster_attack")}>
+              Set attack
+            </button>
+            <button type="button" onClick={() => setE2EGameplayPreset("defense_successful")}>
+              Set success
+            </button>
+            <button type="button" onClick={() => setE2EGameplayPreset("day_complete")}>
+              Set win
+            </button>
+            <button type="button" onClick={() => setE2EGameplayPreset("game_over")}>
+              Set lose
+            </button>
+          </div>
         </>
       )}
 
@@ -709,6 +868,7 @@ function App() {
           lockscreenImageUrl={playerPhotoUrl}
           displayTime={phoneDisplayTime}
           isDefenseMode={phoneDefenseMode}
+          showDefenseHint={showDefenseHint}
           onOpenSocial={() => {
             playPhoneTapClick();
             setPhonePanelScreen("social");

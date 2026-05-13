@@ -217,3 +217,80 @@ export function playSocialFlickerSuspense(durationMs: number) {
     window.setTimeout(closeContext, 40);
   };
 }
+
+export function playMonsterJumpscare() {
+  const AudioContextImpl =
+    window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextImpl) return;
+
+  const context = new AudioContextImpl();
+  const now = context.currentTime;
+
+  const master = context.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.3, now + 0.004);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+  master.connect(context.destination);
+
+  const oscA = context.createOscillator();
+  oscA.type = "sawtooth";
+  oscA.frequency.setValueAtTime(92, now);
+  oscA.frequency.exponentialRampToValueAtTime(28, now + 0.24);
+
+  const oscB = context.createOscillator();
+  oscB.type = "square";
+  oscB.frequency.setValueAtTime(146, now);
+  oscB.frequency.exponentialRampToValueAtTime(54, now + 0.26);
+
+  const oscC = context.createOscillator();
+  oscC.type = "triangle";
+  oscC.frequency.setValueAtTime(412, now);
+  oscC.frequency.exponentialRampToValueAtTime(182, now + 0.18);
+
+  const noiseBuffer = context.createBuffer(1, Math.floor(context.sampleRate * 0.18), context.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let index = 0; index < noiseData.length; index += 1) {
+    noiseData[index] = Math.random() * 2 - 1;
+  }
+  const noise = context.createBufferSource();
+  noise.buffer = noiseBuffer;
+  noise.loop = false;
+
+  const filter = context.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(820, now);
+  filter.Q.value = 6;
+
+  const noiseGain = context.createGain();
+  noiseGain.gain.setValueAtTime(0.05, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+
+  const toneGain = context.createGain();
+  toneGain.gain.setValueAtTime(0.0001, now);
+  toneGain.gain.exponentialRampToValueAtTime(0.18, now + 0.01);
+  toneGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+
+  oscA.connect(toneGain);
+  oscB.connect(toneGain);
+  oscC.connect(toneGain);
+  toneGain.connect(master);
+
+  noise.connect(filter);
+  filter.connect(noiseGain);
+  noiseGain.connect(master);
+
+  oscA.start(now);
+  oscB.start(now);
+  oscC.start(now);
+  noise.start(now);
+
+  const stopAt = now + 0.4;
+  oscA.stop(stopAt);
+  oscB.stop(stopAt);
+  oscC.stop(stopAt);
+  noise.stop(now + 0.2);
+
+  oscA.onended = () => {
+    context.close().catch(() => {});
+  };
+}

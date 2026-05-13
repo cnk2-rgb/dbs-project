@@ -6,7 +6,9 @@ import type { MutableRefObject } from "react";
 import { HallwayWing } from "./scene/HallwayWing";
 import { BatteryPackField } from "./scene/BatteryPackField";
 import { DebugWallLabel } from "./scene/DebugWallLabel";
+import { DebugCollisionBounds } from "./scene/DebugCollisionBounds";
 import { useRoughMaterial } from "./scene/useRoughMaterial";
+import { isBlockedByWorldCollision } from "../lib/worldCollision";
 import {
   CanvasTexture,
   Group,
@@ -47,6 +49,7 @@ export function BedroomScene({
   phoneSelected,
   phoneInInventory,
   gameplayStarted,
+  visiblePackCount,
   collectedPackIds,
   doorOpen,
   onSelectPhone,
@@ -68,6 +71,7 @@ export function BedroomScene({
   phoneSelected: boolean;
   phoneInInventory: boolean;
   gameplayStarted: boolean;
+  visiblePackCount: number;
   collectedPackIds: string[];
   doorOpen: boolean;
   onSelectPhone: () => void;
@@ -90,6 +94,7 @@ export function BedroomScene({
         canMove={phoneUnlocked}
         inputLocked={inputLocked}
         introPhase={introPhase}
+        doorOpen={doorOpen}
         phonePanelActive={phonePanelActive}
         doorInteractionTick={doorInteractionTick}
         returnToPhoneTick={returnToPhoneTick}
@@ -110,9 +115,11 @@ export function BedroomScene({
       <pointLight position={[0, 1.2, 2.05]} intensity={1.7} color="#7f9495" distance={3.5} decay={2.3} />
 
       <RoomShell doorOpen={doorOpen} onToggleDoor={onToggleDoor} />
+      <DebugCollisionBounds />
       <HallwayWing />
       <BatteryPackField
         visible={gameplayStarted}
+        visibleCount={visiblePackCount}
         collectedPackIds={collectedPackIds}
         onCollectPack={onCollectPack}
       />
@@ -140,6 +147,7 @@ function LookOnlyCamera({
   canMove,
   inputLocked,
   introPhase,
+  doorOpen,
   phonePanelActive,
   doorInteractionTick,
   returnToPhoneTick,
@@ -149,6 +157,7 @@ function LookOnlyCamera({
   canMove: boolean;
   inputLocked: boolean;
   introPhase: IntroPhase;
+  doorOpen: boolean;
   phonePanelActive: boolean;
   doorInteractionTick: number;
   returnToPhoneTick: number;
@@ -208,7 +217,6 @@ function LookOnlyCamera({
       if (introPhase === "flicker") {
         position.current.copy(fixedHeadPosition);
       } else if (phonePanelActive) {
-        position.current.lerp(fixedHeadPosition, 0.12);
         targetYaw.current = MathUtils.lerp(targetYaw.current, 0, 0.12);
         targetPitch.current = MathUtils.lerp(targetPitch.current, panelFocusPitch, 0.12);
       } else if (returnCameraActive) {
@@ -253,8 +261,19 @@ function LookOnlyCamera({
 
       if (movementVector.lengthSq() > 0) {
         movementVector.normalize().multiplyScalar(movementSpeed * delta);
-        position.current.add(movementVector);
-        constrainPlayerPosition(position.current);
+        const nextX = position.current.clone();
+        nextX.x += movementVector.x;
+        constrainPlayerPosition(nextX);
+        if (!isBlockedByWorldCollision(nextX, doorOpen)) {
+          position.current.x = nextX.x;
+        }
+
+        const nextZ = position.current.clone();
+        nextZ.z += movementVector.z;
+        constrainPlayerPosition(nextZ);
+        if (!isBlockedByWorldCollision(nextZ, doorOpen)) {
+          position.current.z = nextZ.z;
+        }
       }
 
       const distanceFromBed = Math.hypot(
@@ -389,12 +408,6 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
         <boxGeometry args={[0.18, 4.5, 4.8, 1, 10, 8]} />
         <primitive object={wallMaterial.clone()} attach="material" />
       </mesh>
-      <DebugWallLabel
-        id="C"
-        position={[-3.36, 2.25, 1.6]}
-        oppositePosition={[-3.64, 2.25, 1.6]}
-        rotationY={Math.PI / 2}
-      />
 
       <mesh position={[-3.5, 3.35, -1.4]} receiveShadow>
         {/* Wall D */}
@@ -419,6 +432,12 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
         oppositePosition={[3.64, 2.25, 0]}
         rotationY={Math.PI / 2}
       />
+
+      <mesh position={[0, 2.25, 4.09]} receiveShadow>
+        {/* Back wall between C and E, behind the bed */}
+        <boxGeometry args={[7, 4.5, 0.18, 16, 10, 1]} />
+        <primitive object={wallMaterial.clone()} attach="material" />
+      </mesh>
 
       <mesh position={[-5.5, 3.7, 5]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[20, 28, 20, 14]} />
@@ -607,6 +626,10 @@ function Baseboards() {
       </mesh>
       <mesh position={[3.38, 0.18, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.08, 0.18, 7.78]} />
+        <primitive object={trim.clone()} attach="material" />
+      </mesh>
+      <mesh position={[0, 0.18, 4.01]} castShadow receiveShadow>
+        <boxGeometry args={[6.86, 0.18, 0.08]} />
         <primitive object={trim.clone()} attach="material" />
       </mesh>
     </group>

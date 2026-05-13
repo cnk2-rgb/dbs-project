@@ -18,6 +18,7 @@ export function PhonePanelOverlay({
   lockscreenImageUrl,
   displayTime,
   isDefenseMode,
+  showDefenseHint,
   onOpenSocial,
   onUnlock,
   onDefenseSuccess,
@@ -28,6 +29,7 @@ export function PhonePanelOverlay({
   lockscreenImageUrl: string | null;
   displayTime: string;
   isDefenseMode: boolean;
+  showDefenseHint: boolean;
   onOpenSocial: () => void;
   onUnlock: () => void;
   onDefenseSuccess: () => void;
@@ -152,7 +154,7 @@ export function PhonePanelOverlay({
       >
         {screen === "lock" ? (
           <div className="phone-lock-screen">
-            {isDefenseMode && <div className="phone-defense-badge">defend now</div>}
+            {isDefenseMode && showDefenseHint && <div className="phone-defense-badge">defend now</div>}
             <div className="phone-focus-status">
               <span>9:41</span>
               <div className="phone-focus-island" aria-hidden="true" />

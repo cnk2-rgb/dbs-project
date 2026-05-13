@@ -273,6 +273,40 @@ button {
   pointer-events: none;
 }
 
+.monster-jumpscare-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background-color: #000;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  animation: monster-jumpscare-flash 0.76s steps(1, end) forwards;
+  box-shadow:
+    inset 0 0 120px rgba(0, 0, 0, 0.88),
+    inset 0 0 24px rgba(255, 70, 70, 0.22);
+}
+
+@keyframes monster-jumpscare-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.985);
+    filter: contrast(1.25) saturate(1.1);
+  }
+  10% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03);
+    filter: contrast(1.2) saturate(1.05);
+  }
+}
+
 .gameplay-overlay-warning {
   background:
     radial-gradient(circle at 50% 45%, rgba(255, 66, 66, 0.18), rgba(255, 66, 66, 0.02) 28%, transparent 60%),
@@ -408,6 +442,31 @@ button {
   color: rgba(239, 246, 252, 0.94);
   font-size: 11px;
   padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.e2e-gameplay-controls {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(204, 218, 230, 0.32);
+  background: rgba(8, 12, 17, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.e2e-gameplay-controls button {
+  border: 1px solid rgba(204, 218, 230, 0.42);
+  background: rgba(19, 25, 32, 0.92);
+  color: rgba(239, 246, 252, 0.94);
+  font-size: 11px;
+  padding: 5px 8px;
   border-radius: 8px;
 }
 

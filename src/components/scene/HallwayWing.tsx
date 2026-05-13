@@ -4,8 +4,9 @@ import { DebugWallLabel } from "./DebugWallLabel";
 import { RoomLabel } from "./RoomLabel";
 import { useRoughMaterial } from "./useRoughMaterial";
 import { useGLTF } from "@react-three/drei";
-import { Suspense, useMemo } from "react";
-import { MathUtils, Mesh } from "three";
+import { useFrame } from "@react-three/fiber";
+import { Suspense, useMemo, useRef, useState } from "react";
+import { Group, MathUtils, Mesh } from "three";
 
 const pianoModelPath = "/models/antique-wooden-piano-get3dmodels.glb";
 
@@ -46,18 +47,6 @@ export function HallwayWing() {
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
       <DebugWallLabel id="Y" position={[-10.625, 2.1, -2.65]} oppositePosition={[-10.625, 2.1, -2.95]} rotationY={0} />
-      <mesh position={[-4.9, 2.1, -5.35]} receiveShadow>
-        {/* Wall Q */}
-        <boxGeometry args={[0.14, 4.2, 5.1]} />
-        <primitive object={hallwayWall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel
-        id="Q"
-        position={[-4.73, 2.1, -5.35]}
-        oppositePosition={[-5.07, 2.1, -5.35]}
-        rotationY={Math.PI / 2}
-      />
-
       <mesh position={[-7.42, 2.1, -7.9]} receiveShadow>
         {/* Wall M */}
         <boxGeometry args={[7.66, 4.2, 0.14]} />
@@ -152,6 +141,11 @@ export function HallwayWing() {
         <primitive object={hallwayWall.clone()} attach="material" />
       </mesh>
       <DebugWallLabel id="BA-B" position={[-12.475, 2.1, 2.9]} oppositePosition={[-12.475, 2.1, 3.2]} rotationY={0} />
+      <mesh position={[-12.475, 2.1, 9.725]} receiveShadow>
+        {/* Connector wall closing the gap between BA-T and LR-L */}
+        <boxGeometry args={[2.45, 4.2, 4.75]} />
+        <primitive object={hallwayWall.clone()} attach="material" />
+      </mesh>
       <mesh position={[-12.875, 2.1, 14.6]} receiveShadow>
         {/* Living room left wall */}
         <boxGeometry args={[0.14, 4.2, 5.0]} />
@@ -261,6 +255,14 @@ function OfficeDoor() {
   const door = useRoughMaterial("#1b1714", "#080605", 0.88, "wood");
   const frame = useRoughMaterial("#14110f", "#060403", 0.82, "wood");
   const knob = useRoughMaterial("#1f2327", "#07090b", 0.54, "none");
+  const leafRef = useRef<Group>(null);
+  const [open, setOpen] = useState(false);
+
+  useFrame(() => {
+    if (!leafRef.current) return;
+    const target = open ? MathUtils.degToRad(86) : MathUtils.degToRad(-18);
+    leafRef.current.rotation.y = MathUtils.lerp(leafRef.current.rotation.y, target, 0.12);
+  });
 
   return (
     <group position={[-11.19, 1.04, -4.6]} rotation={[0, Math.PI / 2, 0]}>
@@ -277,7 +279,15 @@ function OfficeDoor() {
         <primitive object={frame.clone()} attach="material" />
       </mesh>
 
-      <group position={[-0.5, -0.02, 0]} rotation={[0, -MathUtils.degToRad(18), 0]}>
+      <group
+        ref={leafRef}
+        position={[-0.5, -0.02, 0]}
+        rotation={[0, -MathUtils.degToRad(18), 0]}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
+      >
         <mesh position={[0.5, 0, 0]} castShadow receiveShadow>
           <boxGeometry args={[1, 2.04, 0.07]} />
           <primitive object={door} attach="material" />
@@ -294,10 +304,26 @@ function OfficeDoor() {
 function BathroomDoor() {
   const door = useRoughMaterial("#171311", "#060403", 0.9, "wood");
   const knob = useRoughMaterial("#1f2327", "#07090b", 0.54, "none");
+  const leafRef = useRef<Group>(null);
+  const [open, setOpen] = useState(false);
+
+  useFrame(() => {
+    if (!leafRef.current) return;
+    const target = open ? MathUtils.degToRad(84) : MathUtils.degToRad(-12);
+    leafRef.current.rotation.y = MathUtils.lerp(leafRef.current.rotation.y, target, 0.12);
+  });
 
   return (
     <group position={[-11.19, 1.04, 5.2]} rotation={[0, Math.PI / 2, 0]}>
-      <group position={[-0.5, -0.02, 0]} rotation={[0, -MathUtils.degToRad(12), 0]}>
+      <group
+        ref={leafRef}
+        position={[-0.5, -0.02, 0]}
+        rotation={[0, -MathUtils.degToRad(12), 0]}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
+      >
         <mesh position={[0.5, 0, 0]} castShadow receiveShadow>
           <boxGeometry args={[1, 2.04, 0.07]} />
           <primitive object={door} attach="material" />

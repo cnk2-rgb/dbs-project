@@ -11,20 +11,22 @@ type BatteryPackDefinition = {
 };
 
 const batteryPackDefinitions: BatteryPackDefinition[] = [
-  { id: "pack-1", position: [-3.95, 0.48, -2.05], rotationY: 0.18 },
-  { id: "pack-2", position: [-5.25, 0.48, -1.45], rotationY: -0.36 },
-  { id: "pack-3", position: [-6.95, 0.48, 0.55], rotationY: 0.11 },
-  { id: "pack-4", position: [-8.45, 0.48, 4.9], rotationY: -0.22 },
-  { id: "pack-5", position: [-9.9, 0.48, 10.5], rotationY: 0.26 },
-  { id: "pack-6", position: [-8.15, 0.48, 14.85], rotationY: -0.14 },
+  { id: "pack-1", position: [-3.55, 0.48, -2.2], rotationY: 0.18 },
+  { id: "pack-2", position: [-13.1, 0.48, 2.2], rotationY: -0.36 },
+  { id: "pack-3", position: [-7.85, 0.48, 2.2], rotationY: 0.11 },
+  { id: "pack-4", position: [-10.05, 0.48, 6.85], rotationY: -0.22 },
+  { id: "pack-5", position: [-11.85, 0.48, 11.95], rotationY: 0.26 },
+  { id: "pack-6", position: [-13.35, 0.48, 16.95], rotationY: -0.14 },
 ];
 
 export function BatteryPackField({
   visible,
+  visibleCount,
   collectedPackIds,
   onCollectPack,
 }: {
   visible: boolean;
+  visibleCount: number;
   collectedPackIds: string[];
   onCollectPack: (packId: string) => void;
 }) {
@@ -32,7 +34,7 @@ export function BatteryPackField({
 
   return (
     <group>
-      {batteryPackDefinitions.map((pack) => (
+      {batteryPackDefinitions.slice(0, visibleCount).map((pack) => (
         <BatteryPack
           key={pack.id}
           position={pack.position}

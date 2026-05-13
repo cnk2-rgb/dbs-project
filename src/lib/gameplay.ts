@@ -19,11 +19,13 @@ export type GameplayState = {
 export const PACK_CHARGE_SECONDS = 10;
 export const REQUIRED_PACKS = 6;
 export const STARTING_LIVES = 3;
+export const FIRST_ATTACK_DELAY_MS = 60000;
 export const ATTACK_MIN_DELAY_MS = 180000;
 export const ATTACK_MAX_DELAY_MS = 240000;
 export const WARNING_WINDOW_MS = 5000;
 export const DEFENSE_OPEN_COST_SECONDS = 1;
-export const PHASE_FLASH_MS = 900;
+export const JUMPSCARE_FLASH_MS = 1000;
+export const PHASE_FLASH_MS = JUMPSCARE_FLASH_MS;
 
 export function createInitialGameplayState(): GameplayState {
   return {
