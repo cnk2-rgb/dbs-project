@@ -1,0 +1,9 @@
+- main [ref=e3]:
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - paragraph [ref=e10]: enter your phone number (optional)
+      - textbox "Phone number" [ref=e11]
+      - paragraph [ref=e12]: upload your image (optional)
+      - button [ref=e14]
+    - button "Open your eyes" [ref=e15] [cursor=pointer]
+    - button "Skip intro" [ref=e16] [cursor=pointer]

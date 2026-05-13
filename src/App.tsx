@@ -47,6 +47,10 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     return params.get("e2e") === "1";
   }, []);
+  const debugNoAttacksMode = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("noAttacks") === "1";
+  }, []);
   const [isAwake, setIsAwake] = useState(false);
   const [introPhase, setIntroPhase] = useState<IntroPhase>("asleep");
   const [phoneSelected, setPhoneSelected] = useState(false);
@@ -413,6 +417,7 @@ function App() {
 
     if (!gameplayStartedRef.current) return;
     if (gameplayPhaseRef.current === "day_complete" || gameplayPhaseRef.current === "game_over") return;
+    if (debugNoAttacksMode) return;
 
     attackTimerRef.current = window.setTimeout(() => {
       clearTimer(attackTimerRef);
@@ -496,6 +501,7 @@ function App() {
     gameplayStartedRef.current = true;
     setGameplayStarted(true);
     setGameplayPhaseSafely("exploring");
+    if (debugNoAttacksMode) return;
     window.setTimeout(() => {
       if (gameplayStartedRef.current && gameplayPhaseRef.current === "exploring") {
         scheduleMonsterAttack(true);
@@ -669,6 +675,11 @@ function App() {
           packsRequired={REQUIRED_PACKS}
           phoneChargeSeconds={phoneChargeSeconds}
         />
+      )}
+      {debugNoAttacksMode && isAwake && introPhase === "active" && (
+        <div className="debug-mode-badge" aria-live="polite">
+          attacks disabled
+        </div>
       )}
 
       {isAwake && introPhase === "active" && gameplayPhase === "monster_warning" && (

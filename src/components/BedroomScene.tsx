@@ -7,8 +7,10 @@ import { HallwayWing } from "./scene/HallwayWing";
 import { BatteryPackField } from "./scene/BatteryPackField";
 import { DebugWallLabel } from "./scene/DebugWallLabel";
 import { DebugCollisionBounds } from "./scene/DebugCollisionBounds";
+import { WallGroup } from "./scene/WallGroup";
 import { useRoughMaterial } from "./scene/useRoughMaterial";
 import { isBlockedByWorldCollision } from "../lib/worldCollision";
+import { BEDROOM_WALLS } from "../lib/wallDefinitions";
 import {
   CanvasTexture,
   Group,
@@ -383,61 +385,7 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
         <primitive object={floorMaterial} attach="material" />
       </mesh>
       <DebugWallLabel id="FLOOR-ALL" position={[-5.5, 0.08, 5]} rotation={[-Math.PI / 2, 0, 0]} />
-
-      <mesh position={[0, 2.25, -4]} receiveShadow>
-        {/* Wall A */}
-        <boxGeometry args={[7, 4.5, 0.18, 16, 10, 1]} />
-        <primitive object={wallMaterial} attach="material" />
-      </mesh>
-      <DebugWallLabel id="A" position={[0, 2.25, -3.86]} oppositePosition={[0, 2.25, -4.14]} rotationY={0} />
-
-      <mesh position={[-3.5, 2.25, -3.325]} receiveShadow>
-        {/* Wall B */}
-        <boxGeometry args={[0.18, 4.5, 2.65, 1, 10, 8]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel
-        id="B"
-        position={[-3.36, 2.25, -3.325]}
-        oppositePosition={[-3.64, 2.25, -3.325]}
-        rotationY={Math.PI / 2}
-      />
-
-      <mesh position={[-3.5, 2.25, 1.6]} receiveShadow>
-        {/* Wall C */}
-        <boxGeometry args={[0.18, 4.5, 4.8, 1, 10, 8]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
-
-      <mesh position={[-3.5, 3.35, -1.4]} receiveShadow>
-        {/* Wall D */}
-        <boxGeometry args={[0.18, 2.3, 1.2, 1, 6, 4]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel
-        id="D"
-        position={[-3.36, 3.35, -1.4]}
-        oppositePosition={[-3.64, 3.35, -1.4]}
-        rotationY={Math.PI / 2}
-      />
-
-      <mesh position={[3.5, 2.25, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        {/* Wall E */}
-        <boxGeometry args={[8, 4.5, 0.18, 16, 10, 1]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel
-        id="E"
-        position={[3.36, 2.25, 0]}
-        oppositePosition={[3.64, 2.25, 0]}
-        rotationY={Math.PI / 2}
-      />
-
-      <mesh position={[0, 2.25, 4.09]} receiveShadow>
-        {/* Back wall between C and E, behind the bed */}
-        <boxGeometry args={[7, 4.5, 0.18, 16, 10, 1]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
+      <WallGroup walls={BEDROOM_WALLS} materialForWall={() => wallMaterial.clone()} />
 
       <mesh position={[-5.5, 3.7, 5]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[20, 28, 20, 14]} />

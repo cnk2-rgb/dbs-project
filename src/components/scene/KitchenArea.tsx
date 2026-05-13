@@ -1,6 +1,7 @@
 import { useRoughMaterial } from "./useRoughMaterial";
-import { DebugWallLabel } from "./DebugWallLabel";
 import { RoomLabel } from "./RoomLabel";
+import { WallGroup } from "./WallGroup";
+import { KITCHEN_WALLS } from "../../lib/wallDefinitions";
 
 export function KitchenArea() {
   const kitchenWall = useRoughMaterial("#202b31", "#0b1116", 0.76, "paint");
@@ -13,24 +14,7 @@ export function KitchenArea() {
 
   return (
     <>
-      <mesh position={[-8.45, 2.1, 0.55]} receiveShadow>
-        {/* Wall J */}
-        <boxGeometry args={[2.1, 4.2, 0.14]} />
-        <primitive object={kitchenWall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel id="J" position={[-8.45, 2.1, 0.4]} oppositePosition={[-8.45, 2.1, 0.7]} rotationY={0} />
-      <mesh position={[-4.9, 2.1, 0.55]} receiveShadow>
-        {/* Wall K */}
-        <boxGeometry args={[2.8, 4.2, 0.14]} />
-        <primitive object={kitchenWall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel id="K" position={[-4.9, 2.1, 0.4]} oppositePosition={[-4.9, 2.1, 0.7]} rotationY={0} />
-      <mesh position={[-6.25, 2.1, 9.1]} receiveShadow>
-        {/* Wall R */}
-        <boxGeometry args={[6.5, 4.2, 0.14]} />
-        <primitive object={kitchenWall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel id="R" position={[-6.25, 2.1, 8.95]} oppositePosition={[-6.25, 2.1, 9.25]} rotationY={0} />
+      <WallGroup walls={KITCHEN_WALLS} materialForWall={() => kitchenWall.clone()} />
       <RoomLabel name="Kitchen" position={[-6.25, 1.2, 3.3]} />
 
       <group position={[-6.25, 0, 3.35]}>
