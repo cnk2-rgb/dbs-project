@@ -2,7 +2,6 @@ import { useRoughMaterial } from "./useRoughMaterial";
 import { RoomLabel } from "./RoomLabel";
 import { WallGroup } from "./WallGroup";
 import { Suspense } from "react";
-import { DebrisPapersModel, PaperModel, TshirtModel } from "./ImportedClutterModels";
 import { KITCHEN_WALLS } from "../../lib/wallDefinitions";
 
 export function KitchenArea() {
@@ -266,6 +265,17 @@ function KitchenCounterDetails() {
 }
 
 function KitchenClutter() {
+  const cloth = useRoughMaterial("#6f766e", "#1d231f", 0.96, "fabric", {
+    seed: "kitchen-cloth",
+    repeat: [3, 4],
+    grimeStrength: 0.82,
+  });
+  const paper = useRoughMaterial("#d9c9ad", "#78684d", 0.9, "paper", {
+    seed: "kitchen-note",
+    repeat: [2, 2],
+    grimeStrength: 0.82,
+  });
+  const trash = useRoughMaterial("#2d2a27", "#0d0b0a", 0.92, "none");
   const wood = useRoughMaterial("#6d523c", "#281b12", 0.88, "wood", {
     seed: "kitchen-serving-board",
     repeat: [2, 3],
@@ -277,11 +287,18 @@ function KitchenClutter() {
         <boxGeometry args={[0.36, 0.04, 0.24]} />
         <primitive object={wood} attach="material" />
       </mesh>
-      <Suspense fallback={null}>
-        <PaperModel position={[-2.12, 1.08, 3.0]} rotation={[0.1, 0.22, -0.04]} scale={0.075} />
-        <TshirtModel position={[1.42, 0.02, 0.95]} rotation={[0.14, -0.24, -0.42]} scale={0.17} />
-        <DebrisPapersModel position={[1.98, 0.01, 0.84]} rotation={[0.08, 0.15, 0.08]} scale={0.11} />
-      </Suspense>
+      <mesh position={[-2.12, 1.1, 3.0]} rotation={[0, 0.22, -0.04]} castShadow receiveShadow>
+        <planeGeometry args={[0.24, 0.16]} />
+        <primitive object={paper} attach="material" />
+      </mesh>
+      <mesh position={[1.42, 0.05, 0.95]} rotation={[0, -0.24, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.46, 0.08, 0.32]} />
+        <primitive object={cloth} attach="material" />
+      </mesh>
+      <mesh position={[1.98, 0.04, 0.84]} rotation={[0, 0.15, 0.08]} castShadow receiveShadow>
+        <boxGeometry args={[0.22, 0.18, 0.22]} />
+        <primitive object={trash} attach="material" />
+      </mesh>
       <mesh position={[-0.42, 0.03, 2.9]} rotation={[0, 0.1, 0]} receiveShadow>
         <boxGeometry args={[0.62, 0.02, 0.46]} />
         <primitive object={wood.clone()} attach="material" />

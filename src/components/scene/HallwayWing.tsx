@@ -7,7 +7,6 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useMemo, useRef, useState } from "react";
 import { Group, MathUtils, Mesh } from "three";
-import { DebrisPapersModel, PaperModel, TshirtModel } from "./ImportedClutterModels";
 import { HALLWAY_WALLS } from "../../lib/wallDefinitions";
 
 const pianoModelPath = "/models/antique-wooden-piano-get3dmodels.glb";
@@ -154,6 +153,7 @@ function OfficeDoor() {
 }
 
 function BathroomDoor() {
+  const frame = useRoughMaterial("#14110f", "#060403", 0.82, "wood");
   const door = useRoughMaterial("#171311", "#060403", 0.9, "wood");
   const knob = useRoughMaterial("#1f2327", "#07090b", 0.54, "none");
   const leafRef = useRef<Group>(null);
@@ -161,26 +161,38 @@ function BathroomDoor() {
 
   useFrame(() => {
     if (!leafRef.current) return;
-    const target = open ? MathUtils.degToRad(84) : MathUtils.degToRad(-12);
+    const target = open ? MathUtils.degToRad(92) : 0;
     leafRef.current.rotation.y = MathUtils.lerp(leafRef.current.rotation.y, target, 0.12);
   });
 
   return (
     <group position={[-11.19, 1.04, 5.2]} rotation={[0, Math.PI / 2, 0]}>
+      <mesh position={[-0.61, 0, 0.05]} castShadow receiveShadow>
+        <boxGeometry args={[0.06, 2.2, 0.08]} />
+        <primitive object={frame} attach="material" />
+      </mesh>
+      <mesh position={[0.61, 0, 0.05]} castShadow receiveShadow>
+        <boxGeometry args={[0.06, 2.2, 0.08]} />
+        <primitive object={frame.clone()} attach="material" />
+      </mesh>
+      <mesh position={[0, 1.11, 0.05]} castShadow receiveShadow>
+        <boxGeometry args={[1.16, 0.06, 0.08]} />
+        <primitive object={frame.clone()} attach="material" />
+      </mesh>
       <group
         ref={leafRef}
-        position={[-0.5, -0.02, 0]}
-        rotation={[0, -MathUtils.degToRad(12), 0]}
+        position={[-0.55, -0.02, 0]}
+        rotation={[0, 0, 0]}
         onDoubleClick={(event) => {
           event.stopPropagation();
           setOpen((value) => !value);
         }}
       >
-        <mesh position={[0.5, 0, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1, 2.04, 0.07]} />
+        <mesh position={[0.55, 0, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.1, 2.04, 0.07]} />
           <primitive object={door} attach="material" />
         </mesh>
-        <mesh position={[0.82, 0.04, 0.06]} castShadow>
+        <mesh position={[0.89, 0.04, 0.06]} castShadow>
           <sphereGeometry args={[0.038, 12, 8]} />
           <primitive object={knob} attach="material" />
         </mesh>
@@ -243,11 +255,18 @@ function HallwayDetails() {
         ))}
       </group>
 
-      <Suspense fallback={null}>
-        <PaperModel position={[-6.45, 0.03, 0.03]} rotation={[-Math.PI / 2, 0.1, -0.18]} scale={0.095} />
-        <DebrisPapersModel position={[-7.82, 0.02, -2.78]} rotation={[-Math.PI / 2, 0.08, 0.06]} scale={0.11} />
-        <TshirtModel position={[-8.28, 0.01, -1.74]} rotation={[0.08, 0.1, -0.2]} scale={0.13} />
-      </Suspense>
+      <mesh position={[-6.45, 0.08, 0.03]} rotation={[-Math.PI / 2, 0, -0.18]} receiveShadow>
+        <boxGeometry args={[0.62, 0.42, 0.018]} />
+        <primitive object={paper} attach="material" />
+      </mesh>
+      <mesh position={[-7.82, 0.04, -2.78]} rotation={[-Math.PI / 2, 0.08, 0]} receiveShadow>
+        <boxGeometry args={[0.78, 0.42, 0.018]} />
+        <primitive object={paper.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-8.28, 0.02, -1.74]} rotation={[0, 0.1, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.42, 0.08, 0.22]} />
+        <primitive object={wood.clone()} attach="material" />
+      </mesh>
     </>
   );
 }
@@ -438,11 +457,18 @@ function LivingRoomFurniture() {
         <pointLight position={[0, 1.18, 0]} intensity={1.8} color="#ffdba6" distance={3.2} decay={2} />
       </group>
 
-      <Suspense fallback={null}>
-        <DebrisPapersModel position={[-9.1, 0.02, 15.85]} rotation={[0.08, 0.14, 0.1]} scale={0.16} />
-        <TshirtModel position={[-11.2, 0.01, 15.95]} rotation={[0.02, 0.08, -0.26]} scale={0.1} />
-        <PaperModel position={[-8.7, 0.02, 14.28]} rotation={[0, -0.2, 0.04]} scale={0.085} />
-      </Suspense>
+      <mesh position={[-9.1, 0.06, 15.85]} rotation={[0, 0.14, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.78, 0.08, 0.42]} />
+        <primitive object={wood.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-11.2, 0.04, 15.95]} rotation={[0, 0.08, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.32, 0.06, 0.2]} />
+        <primitive object={dark.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-8.7, 0.03, 14.28]} rotation={[0, -0.2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.34, 0.08, 0.22]} />
+        <primitive object={paper.clone()} attach="material" />
+      </mesh>
     </>
   );
 }

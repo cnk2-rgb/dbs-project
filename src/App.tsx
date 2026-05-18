@@ -4,6 +4,7 @@ import { Color } from "three";
 import { GameplayHud } from "./components/GameplayHud";
 import { BedroomScene } from "./components/BedroomScene";
 import { PhonePanelOverlay, advancePhoneTimeByHour } from "./components/PhonePanelOverlay";
+import { BATTERY_PACK_DEFINITIONS } from "./lib/batteryPacks";
 import {
   playPhoneCloseClick,
   playMonsterJumpscare,
@@ -80,6 +81,8 @@ function App() {
   const [packsCollected, setPacksCollected] = useState(0);
   const [phoneChargeSeconds, setPhoneChargeSeconds] = useState(0);
   const [collectedPackIds, setCollectedPackIds] = useState<string[]>([]);
+  const [packDebugEnabled, setPackDebugEnabled] = useState(false);
+  const [debugPackFocusId, setDebugPackFocusId] = useState<string | null>(null);
   const [phoneDefenseMode, setPhoneDefenseMode] = useState(false);
   const [showDefenseHint, setShowDefenseHint] = useState(false);
   const [monsterJumpscare, setMonsterJumpscare] = useState<{ id: number; imageUrl: string } | null>(null);
@@ -92,6 +95,7 @@ function App() {
   const monsterJumpscareTimerRef = useRef<number | null>(null);
   const gameplayStartedRef = useRef(false);
   const gameplayPhaseRef = useRef<GameplayPhase>("bedroom");
+  const collectedPackIdsRef = useRef<string[]>([]);
 
   const collectPhoneFromTable = ({
     showFollowupDialogue,
@@ -267,6 +271,10 @@ function App() {
   }, [gameplayPhase]);
 
   useEffect(() => {
+    collectedPackIdsRef.current = collectedPackIds;
+  }, [collectedPackIds]);
+
+  useEffect(() => {
     if (!gameplayStartedRef.current || !phoneOn || phoneChargeSeconds <= 0) return;
 
     const drainTimer = window.setInterval(() => {
@@ -322,6 +330,30 @@ function App() {
     setGameplayPhase(nextPhase);
   };
 
+  const enableBatteryPackTestMode = () => {
+    clearGameplayTimers();
+    setPackDebugEnabled(true);
+    setDebugPackFocusId(null);
+    gameplayStartedRef.current = true;
+    setGameplayStarted(true);
+    setGameplayPhaseSafely("exploring");
+    setPacksCollected(0);
+    collectedPackIdsRef.current = [];
+    setCollectedPackIds([]);
+    setPhoneChargeSeconds(0);
+    setPhoneInInventory(false);
+    setPhoneUnlocked(true);
+    setPhoneOn(false);
+    setPhonePanelScreen(null);
+    setPhoneSelected(false);
+    setPhoneOpenHintVisible(false);
+    setClosePhoneHintVisible(false);
+    setPhoneDefenseMode(false);
+    setShowDefenseHint(false);
+    setLives(STARTING_LIVES);
+    setMonsterJumpscare(null);
+  };
+
   const setE2EGameplayPreset = (preset: E2EGameplayPreset) => {
     clearGameplayTimers();
     gameplayStartedRef.current = true;
@@ -348,6 +380,8 @@ function App() {
         setPhoneUnlocked(false);
         setLives(STARTING_LIVES);
         setPacksCollected(0);
+        collectedPackIdsRef.current = [];
+        setCollectedPackIds([]);
         setPhoneChargeSeconds(0);
         setGameplayPhaseSafely("exploring");
         break;
@@ -356,8 +390,10 @@ function App() {
         setPhoneUnlocked(true);
         setLives(STARTING_LIVES);
         setPacksCollected(0);
+        collectedPackIdsRef.current = [];
+        setCollectedPackIds([]);
         setPhoneChargeSeconds(20);
-        setShowDefenseHint(false);
+        setShowDefenseHint(true);
         setGameplayPhaseSafely("monster_warning");
         break;
       case "phone_unlock":
@@ -365,10 +401,12 @@ function App() {
         setPhoneUnlocked(true);
         setLives(STARTING_LIVES);
         setPacksCollected(0);
+        collectedPackIdsRef.current = [];
+        setCollectedPackIds([]);
         setPhoneChargeSeconds(20);
         setPhoneOn(true);
         setPhoneDefenseMode(true);
-        setShowDefenseHint(false);
+        setShowDefenseHint(true);
         setPhonePanelScreen("lock");
         setGameplayPhaseSafely("phone_unlock");
         break;
@@ -377,6 +415,8 @@ function App() {
         setPhoneUnlocked(true);
         setLives(2);
         setPacksCollected(0);
+        collectedPackIdsRef.current = [];
+        setCollectedPackIds([]);
         setPhoneChargeSeconds(0);
         setShowDefenseHint(false);
         setGameplayPhaseSafely("monster_attack");
@@ -386,6 +426,8 @@ function App() {
         setPhoneUnlocked(true);
         setLives(2);
         setPacksCollected(0);
+        collectedPackIdsRef.current = [];
+        setCollectedPackIds([]);
         setPhoneChargeSeconds(0);
         setShowDefenseHint(false);
         setGameplayPhaseSafely("defense_successful");
@@ -395,6 +437,8 @@ function App() {
         setPhoneUnlocked(true);
         setLives(STARTING_LIVES);
         setPacksCollected(REQUIRED_PACKS);
+        collectedPackIdsRef.current = [];
+        setCollectedPackIds([]);
         setPhoneChargeSeconds(60);
         setShowDefenseHint(false);
         setGameplayPhaseSafely("day_complete");
@@ -404,6 +448,8 @@ function App() {
         setPhoneUnlocked(true);
         setLives(0);
         setPacksCollected(0);
+        collectedPackIdsRef.current = [];
+        setCollectedPackIds([]);
         setPhoneChargeSeconds(0);
         setShowDefenseHint(false);
         setMonsterJumpscare(null);
@@ -510,7 +556,8 @@ function App() {
   };
 
   const collectBatteryPack = (packId: string) => {
-    if (collectedPackIds.includes(packId)) return;
+    if (collectedPackIdsRef.current.includes(packId)) return;
+    collectedPackIdsRef.current = [...collectedPackIdsRef.current, packId];
     setCollectedPackIds((current) => (current.includes(packId) ? current : [...current, packId]));
     setPacksCollected((current) => {
       const next = current + 1;
@@ -531,7 +578,9 @@ function App() {
   const panelActive = phonePanelScreen !== null;
   const gameplayFrozen = gameplayPhase === "monster_attack" || gameplayPhase === "defense_successful";
   const gameplayFinished = gameplayPhase === "day_complete" || gameplayPhase === "game_over";
+  const debugMode = e2eMode || import.meta.env.DEV;
   const visiblePackCount = Math.min(Math.max(2, packsCollected + 2), REQUIRED_PACKS);
+  const sceneVisiblePackCount = packDebugEnabled ? REQUIRED_PACKS : visiblePackCount;
   const controlsLocked =
     panelActive ||
     introActive ||
@@ -622,8 +671,10 @@ function App() {
             phoneSelected={phoneSelected}
             phoneInInventory={phoneInInventory}
             gameplayStarted={gameplayStarted}
-            visiblePackCount={visiblePackCount}
+            visiblePackCount={sceneVisiblePackCount}
             collectedPackIds={collectedPackIds}
+            debugMode={debugMode}
+            debugPackFocusId={debugPackFocusId}
             doorOpen={doorOpen}
             onSelectPhone={() => {
               if (skipIntroUsed) {
@@ -699,8 +750,9 @@ function App() {
           key={monsterJumpscare.id}
           className="monster-jumpscare-overlay"
           aria-hidden="true"
-          style={{ backgroundImage: `url(${monsterJumpscare.imageUrl})` }}
-        />
+        >
+          <img className="monster-jumpscare-image" src={monsterJumpscare.imageUrl} alt="" />
+        </div>
       )}
 
       {introPhase === "flicker" && <div className="intro-blackout intro-blackout-flicker" />}
@@ -803,6 +855,16 @@ function App() {
 
       {e2eMode && isAwake && introPhase === "active" && (
         <>
+          <div className="e2e-pack-controls" aria-label="Battery pack controls">
+            <button type="button" onClick={enableBatteryPackTestMode}>
+              Enable battery packs (e2e)
+            </button>
+            {BATTERY_PACK_DEFINITIONS.map((pack) => (
+              <button key={pack.id} type="button" onClick={() => setDebugPackFocusId(pack.id)}>
+                Focus {pack.id}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             className="e2e-open-phone"
@@ -887,6 +949,10 @@ function App() {
           onUnlock={() => {
             playPhoneUnlockClick();
             setPhoneUnlocked(true);
+            if (phoneDefenseMode) {
+              setPhonePanelScreen("puzzle");
+              return;
+            }
             setPhoneDefenseMode(false);
             setPhonePanelScreen("home");
             void sendUnlockText(playerPhoneNumber);

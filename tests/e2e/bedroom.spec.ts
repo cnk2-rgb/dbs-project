@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { BATTERY_PACK_DEFINITIONS } from "../../src/lib/batteryPacks";
 
 async function expectStartOverlaySpacing(page: Page) {
   const intakeBounds = await page.locator(".start-intake").boundingBox();
@@ -16,6 +17,7 @@ async function waitForIntroToSettle(page: Page) {
 
 async function waitForE2EControls(page: Page) {
   await expect(page.locator(".e2e-gameplay-controls")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".e2e-pack-controls")).toBeVisible({ timeout: 20_000 });
 }
 
 async function clickE2EButton(page: Page, label: string) {
@@ -28,6 +30,21 @@ async function clickGameplayControl(page: Page, label: string) {
   const button = page.getByRole("button", { name: label });
   await button.waitFor({ state: "attached", timeout: 20_000 });
   await button.click({ force: true });
+}
+
+async function dblclickCanvasCenter(page: Page) {
+  const canvas = page.locator(".scene-frame canvas").first();
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  if (!bounds) return;
+
+  await canvas.dblclick({
+    position: {
+      x: bounds.width / 2,
+      y: bounds.height / 2,
+    },
+    force: true,
+  });
 }
 
 test("renders the fixed bedroom scene", async ({ page }) => {
@@ -187,4 +204,25 @@ test("validates the game over finish state", async ({ page }) => {
   await expect(page.locator(".gameplay-state-label")).toHaveText("[game over]");
   await expect(page.getByText("The monster broke through your last life.")).toBeVisible();
   await expect(page.getByRole("button", { name: "restart" })).toBeVisible();
+});
+
+test("collects every battery pack from a direct front focus", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/?e2e=1");
+  await page.getByRole("button", { name: "Open your eyes" }).click();
+  await waitForIntroToSettle(page);
+  await waitForE2EControls(page);
+
+  await page.getByRole("button", { name: "Enable battery packs (e2e)" }).click({ force: true });
+  await expect(page.getByTestId("packs-chip")).toHaveText("packs 0/6", { timeout: 5_000 });
+
+  for (const [index, pack] of BATTERY_PACK_DEFINITIONS.entries()) {
+    await page.getByRole("button", { name: `Focus ${pack.id}` }).click({ force: true });
+    await page.waitForTimeout(150);
+    await dblclickCanvasCenter(page);
+    await expect(page.getByTestId("packs-chip")).toHaveText(`packs ${index + 1}/6`, { timeout: 5_000 });
+  }
+
+  await expect(page.locator(".gameplay-state-label")).toHaveText("[day complete]", { timeout: 10_000 });
+  await expect(page.locator(".gameplay-finish-card")).toBeVisible({ timeout: 10_000 });
 });

@@ -20,7 +20,9 @@ export function GameplayHud({
     <>
       <div className="gameplay-hud gameplay-hud-left" aria-live="polite">
         <div className="gameplay-hud-chip">lives {Math.max(lives, 0)}</div>
-        <div className="gameplay-hud-chip">packs {packsCollected}/{packsRequired}</div>
+        <div className="gameplay-hud-chip" data-testid="packs-chip">
+          packs {packsCollected}/{packsRequired}
+        </div>
         <div className="gameplay-hud-chip">charge {phoneChargeSeconds}s</div>
       </div>
       <div className="gameplay-hud gameplay-hud-center" aria-live="polite">

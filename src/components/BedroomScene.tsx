@@ -6,8 +6,11 @@ import type { MutableRefObject } from "react";
 import { HallwayWing } from "./scene/HallwayWing";
 import { BatteryPackField } from "./scene/BatteryPackField";
 import { DebugWallLabel } from "./scene/DebugWallLabel";
+import { usePolyHavenMaterial } from "./scene/usePolyHavenMaterial";
 import { WallGroup } from "./scene/WallGroup";
 import { useRoughMaterial } from "./scene/useRoughMaterial";
+import { BATTERY_PACK_DEFINITIONS, getBatteryPackFocusPoint } from "../lib/batteryPacks";
+import { startMovementFootstepAudio } from "../lib/audio";
 import { isBlockedByWorldCollision } from "../lib/worldCollision";
 import { BEDROOM_WALLS } from "../lib/wallDefinitions";
 import {
@@ -52,6 +55,8 @@ export function BedroomScene({
   gameplayStarted,
   visiblePackCount,
   collectedPackIds,
+  debugMode,
+  debugPackFocusId,
   doorOpen,
   onSelectPhone,
   onTurnOnPhone,
@@ -74,6 +79,8 @@ export function BedroomScene({
   gameplayStarted: boolean;
   visiblePackCount: number;
   collectedPackIds: string[];
+  debugMode: boolean;
+  debugPackFocusId: string | null;
   doorOpen: boolean;
   onSelectPhone: () => void;
   onTurnOnPhone: () => void;
@@ -86,6 +93,11 @@ export function BedroomScene({
   doorInteractionTick: number;
   returnToPhoneTick: number;
 }) {
+  const debugPackFocus = useMemo(
+    () => BATTERY_PACK_DEFINITIONS.find((pack) => pack.id === debugPackFocusId) ?? null,
+    [debugPackFocusId],
+  );
+
   return (
     <>
       <color attach="background" args={["#0b0f0f"]} />
@@ -99,6 +111,7 @@ export function BedroomScene({
         phonePanelActive={phonePanelActive}
         doorInteractionTick={doorInteractionTick}
         returnToPhoneTick={returnToPhoneTick}
+        debugPackFocus={debugPackFocus}
         onEnterHallway={onEnterHallway}
       />
       <hemisphereLight intensity={0.62} color="#a3b4be" groundColor="#2b2018" />
@@ -129,6 +142,8 @@ export function BedroomScene({
         visible={gameplayStarted}
         visibleCount={visiblePackCount}
         collectedPackIds={collectedPackIds}
+        debugMode={debugMode}
+        debugPackFocusId={debugPackFocusId}
         onCollectPack={onCollectPack}
       />
       <Bed />
@@ -159,6 +174,7 @@ function LookOnlyCamera({
   phonePanelActive,
   doorInteractionTick,
   returnToPhoneTick,
+  debugPackFocus,
   onEnterHallway,
 }: {
   enabled: boolean;
@@ -169,6 +185,7 @@ function LookOnlyCamera({
   phonePanelActive: boolean;
   doorInteractionTick: number;
   returnToPhoneTick: number;
+  debugPackFocus: (typeof BATTERY_PACK_DEFINITIONS)[number] | null;
   onEnterHallway: () => void;
 }) {
   const { camera, gl } = useThree();
@@ -184,6 +201,8 @@ function LookOnlyCamera({
   const returnCameraUntil = useRef(0);
   const freezeMovementUntil = useRef(0);
   const hallwayTriggered = useRef(false);
+  const movementFootstepStop = useRef<null | (() => void)>(null);
+  const movementFootstepPlaying = useRef(false);
 
   useEffect(() => {
     if (returnToPhoneTick <= 0) return;
@@ -191,10 +210,37 @@ function LookOnlyCamera({
   }, [returnToPhoneTick]);
 
   useEffect(() => {
+    if (!debugPackFocus) return;
+
+    const focusPoint = getBatteryPackFocusPoint(debugPackFocus);
+    const lookTarget = new Vector3(debugPackFocus.position[0], debugPackFocus.position[1], debugPackFocus.position[2]);
+
+    position.current.copy(focusPoint);
+    movement.current = { forward: false, backward: false, left: false, right: false };
+    camera.position.copy(position.current);
+    camera.lookAt(lookTarget);
+    camera.rotation.order = "YXZ";
+    yaw.current = camera.rotation.y;
+    pitch.current = camera.rotation.x;
+    targetYaw.current = camera.rotation.y;
+    targetPitch.current = camera.rotation.x;
+  }, [camera, debugPackFocus]);
+
+  useEffect(() => {
     if (doorInteractionTick <= 0) return;
     movement.current = { forward: false, backward: false, left: false, right: false };
     freezeMovementUntil.current = performance.now() + 320;
   }, [doorInteractionTick]);
+
+  useEffect(() => {
+    return () => {
+      if (movementFootstepStop.current) {
+        movementFootstepStop.current();
+        movementFootstepStop.current = null;
+      }
+      movementFootstepPlaying.current = false;
+    };
+  }, []);
 
   useFrame((_, delta) => {
     const now = performance.now();
@@ -268,6 +314,10 @@ function LookOnlyCamera({
       }
 
       if (movementVector.lengthSq() > 0) {
+        if (!movementFootstepPlaying.current) {
+          movementFootstepPlaying.current = true;
+          movementFootstepStop.current = startMovementFootstepAudio();
+        }
         movementVector.normalize().multiplyScalar(movementSpeed * delta);
         const nextX = position.current.clone();
         nextX.x += movementVector.x;
@@ -284,6 +334,14 @@ function LookOnlyCamera({
         }
       }
 
+      if (movementVector.lengthSq() <= 0 && movementFootstepPlaying.current) {
+        movementFootstepPlaying.current = false;
+        if (movementFootstepStop.current) {
+          movementFootstepStop.current();
+          movementFootstepStop.current = null;
+        }
+      }
+
       const distanceFromBed = Math.hypot(
         position.current.x - fixedHeadPosition.x,
         position.current.z - fixedHeadPosition.z,
@@ -297,6 +355,14 @@ function LookOnlyCamera({
     if (!hallwayTriggered.current && position.current.x < -3.35 && position.current.z < 2.15) {
       hallwayTriggered.current = true;
       onEnterHallway();
+    }
+
+    if ((introPhase !== "active" || inputLocked || !enabled || !canMove) && movementFootstepPlaying.current) {
+      movementFootstepPlaying.current = false;
+      if (movementFootstepStop.current) {
+        movementFootstepStop.current();
+        movementFootstepStop.current = null;
+      }
     }
   });
 
@@ -379,22 +445,24 @@ function LookOnlyCamera({
 }
 
 function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor: () => void }) {
-  const floorMaterial = useRoughMaterial("#252626", "#161716", 0.9, "concrete", {
-    seed: "bedroom-floor",
-    repeat: [4, 5],
-    grimeStrength: 1.15,
-    stainStrength: 1.05,
-    warpStrength: 0.9,
-    edgeWear: 1.15,
-  });
-  const wallMaterial = useRoughMaterial("#202221", "#111514", 0.82, "paint", {
-    seed: "bedroom-wall",
-    repeat: [3, 3],
-    grimeStrength: 1.2,
-    stainStrength: 1.25,
-    warpStrength: 0.8,
-    edgeWear: 1.2,
-  });
+  const floorMaterial = usePolyHavenMaterial(
+    "/textures/polyhaven/tiled_floor_001/diffuse.jpg",
+    "/textures/polyhaven/tiled_floor_001/roughness.jpg",
+    {
+      baseColor: "#ffffff",
+      repeat: [4, 5],
+      roughness: 0.9,
+    },
+  );
+  const wallMaterial = usePolyHavenMaterial(
+    "/textures/polyhaven/concrete_wall_001/diffuse.jpg",
+    "/textures/polyhaven/concrete_wall_001/roughness.jpg",
+    {
+      baseColor: "#d7d2c7",
+      repeat: [2.6, 1.15],
+      roughness: 0.98,
+    },
+  );
   const ceilingMaterial = useRoughMaterial("#2d3233", "#171d1e", 0.7, "paint", {
     seed: "bedroom-ceiling",
     repeat: [3, 2],
@@ -431,7 +499,6 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
         <primitive object={rugMaterial} attach="material" />
       </mesh>
 
-      <FloorSeams />
       <Baseboards />
       <Window />
       <Door open={doorOpen} onToggle={onToggleDoor} />
@@ -619,27 +686,6 @@ function BedroomClutter() {
         <meshStandardMaterial color="#a59c93" roughness={0.9} />
       </mesh>
     </>
-  );
-}
-
-function FloorSeams() {
-  const seam = useRoughMaterial("#101211", "#000000", 0.92, "none");
-
-  return (
-    <group>
-      {[-2.1, -0.7, 0.7, 2.1].map((x) => (
-        <mesh key={`x-${x}`} position={[x, 0.034, 0]} receiveShadow>
-          <boxGeometry args={[0.018, 0.01, 8]} />
-          <primitive object={seam.clone()} attach="material" />
-        </mesh>
-      ))}
-      {[-2.4, -1.2, 0, 1.2, 2.4].map((z) => (
-        <mesh key={`z-${z}`} position={[0, 0.036, z]} receiveShadow>
-          <boxGeometry args={[7, 0.01, 0.018]} />
-          <primitive object={seam.clone()} attach="material" />
-        </mesh>
-      ))}
-    </group>
   );
 }
 

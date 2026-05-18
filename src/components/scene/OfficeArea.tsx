@@ -3,7 +3,6 @@ import { WallGroup } from "./WallGroup";
 import { useGLTF } from "@react-three/drei";
 import { Suspense, useMemo } from "react";
 import { Mesh } from "three";
-import { DebrisPapersModel, PaperModel } from "./ImportedClutterModels";
 import { OFFICE_WALLS } from "../../lib/wallDefinitions";
 
 const desktopComputerModelPath = "/models/stylized-computer-set-get3dmodels.glb";
@@ -165,6 +164,11 @@ function OfficeDetails() {
     repeat: [3, 3],
     grimeStrength: 0.9,
   });
+  const box = useRoughMaterial("#80694f", "#2d2118", 0.86, "paper", {
+    seed: "office-box",
+    repeat: [2, 2],
+    grimeStrength: 0.85,
+  });
   const metal = useRoughMaterial("#7d8790", "#283039", 0.38, "none");
   const dark = useRoughMaterial("#171c20", "#05070a", 0.62, "none");
   const cork = useRoughMaterial("#7c6040", "#2b1d12", 0.92, "wood", {
@@ -210,10 +214,21 @@ function OfficeDetails() {
         ))}
       </group>
 
-      <Suspense fallback={null}>
-        <DebrisPapersModel position={[-13.98, 0.02, 3.08]} rotation={[0.02, -0.14, 0.08]} scale={0.12} />
-        <PaperModel position={[-13.5, 0.02, 3.25]} rotation={[-Math.PI / 2, 0.02, -0.12]} scale={0.13} />
-      </Suspense>
+      <group position={[-13.98, 0.18, 3.08]} rotation={[0, -0.14, 0]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.58, 0.36, 0.46]} />
+          <primitive object={box} attach="material" />
+        </mesh>
+        <mesh position={[0, 0.2, -0.02]} castShadow receiveShadow>
+          <boxGeometry args={[0.62, 0.04, 0.5]} />
+          <primitive object={paper.clone()} attach="material" />
+        </mesh>
+      </group>
+
+      <mesh position={[-13.5, 1.09, 3.25]} rotation={[-Math.PI / 2, 0, -0.12]} castShadow receiveShadow>
+        <boxGeometry args={[0.42, 0.62, 0.018]} />
+        <primitive object={paper.clone()} attach="material" />
+      </mesh>
 
       <group position={[-12.28, 0.08, 2.9]} rotation={[0, -0.18, 0]}>
         <mesh position={[0, 0.04, 0]} castShadow receiveShadow>
@@ -229,10 +244,14 @@ function OfficeDetails() {
           <primitive object={fabric.clone()} attach="material" />
         </mesh>
       </group>
-      <Suspense fallback={null}>
-        <PaperModel position={[-13.75, 0.02, 3.1]} rotation={[0.02, 0.28, 0.14]} scale={0.09} />
-        <PaperModel position={[-13.62, 0.03, 3.08]} rotation={[0.02, 0.1, -0.12]} scale={0.07} />
-      </Suspense>
+      <mesh position={[-13.75, 0.06, 3.1]} rotation={[0, 0.28, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.34, 0.08, 0.22]} />
+        <primitive object={box.clone()} attach="material" />
+      </mesh>
+      <mesh position={[-13.62, 0.16, 3.08]} rotation={[0.02, 0.1, -0.12]} castShadow receiveShadow>
+        <boxGeometry args={[0.22, 0.16, 0.02]} />
+        <primitive object={paper.clone()} attach="material" />
+      </mesh>
     </>
   );
 }

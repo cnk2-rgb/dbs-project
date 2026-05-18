@@ -33,13 +33,26 @@ export function isBlockedByWorldCollision(position: Vector3, bedroomDoorOpen: bo
   return WORLD_COLLISION_BOXES.some((box) => {
     if (box.ignoreWhenBedroomDoorOpen && isBedroomDoorwayClear(position, bedroomDoorOpen)) return false;
 
-    return (
-      position.x >= box.minX - collisionPadding &&
-      position.x <= box.maxX + collisionPadding &&
-      position.z >= box.minZ - collisionPadding &&
-      position.z <= box.maxZ + collisionPadding
-    );
+    return isPointInsideCollisionBox(position, box);
   });
+}
+
+export function isPointInsideCollisionBox(position: Vector3, box: CollisionBox) {
+  return (
+    position.x >= box.minX - collisionPadding &&
+    position.x <= box.maxX + collisionPadding &&
+    position.z >= box.minZ - collisionPadding &&
+    position.z <= box.maxZ + collisionPadding
+  );
+}
+
+export function getWorldCollisionClearance(position: Vector3) {
+  return WORLD_COLLISION_BOXES.reduce((clearance, box) => {
+    const dx = position.x < box.minX ? box.minX - position.x : position.x > box.maxX ? position.x - box.maxX : 0;
+    const dz = position.z < box.minZ ? box.minZ - position.z : position.z > box.maxZ ? position.z - box.maxZ : 0;
+    const boxClearance = Math.hypot(dx, dz);
+    return Math.min(clearance, boxClearance);
+  }, Number.POSITIVE_INFINITY);
 }
 
 function isBedroomDoorwayClear(position: Vector3, bedroomDoorOpen: boolean) {

@@ -1,3 +1,27 @@
+const defensePhaseAudioPath = "/audio/Jumpscare Chase (Horror Sound) - Sound Effect for editing.mp3";
+const movementFootstepAudioPath = "/audio/Foot Step Hallway _ Horror Film Sound Effects.mp3";
+
+function createLoopingAudio(src: string, volume: number) {
+  const audio = new Audio(encodeURI(src));
+  audio.loop = true;
+  audio.preload = "auto";
+  audio.volume = volume;
+  return audio;
+}
+
+function playLoopingAudio(src: string, volume: number) {
+  const audio = createLoopingAudio(src, volume);
+  const playPromise = audio.play();
+  if (playPromise) {
+    playPromise.catch(() => {});
+  }
+
+  return () => {
+    audio.pause();
+    audio.currentTime = 0;
+  };
+}
+
 export function playPhoneOpenClick() {
   const AudioContextImpl = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioContextImpl) return;
@@ -293,4 +317,12 @@ export function playMonsterJumpscare() {
   oscA.onended = () => {
     context.close().catch(() => {});
   };
+}
+
+export function startDefensePhaseAudio() {
+  return playLoopingAudio(defensePhaseAudioPath, 0.48);
+}
+
+export function startMovementFootstepAudio() {
+  return playLoopingAudio(movementFootstepAudioPath, 0.35);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { MathUtils } from "three";
-import { playPhoneTapClick, playSocialFlickerSuspense } from "../lib/audio";
+import { playPhoneTapClick, playSocialFlickerSuspense, startDefensePhaseAudio } from "../lib/audio";
 import type { PhonePanelScreen } from "../types/app";
 
 const socialImagePool = [
@@ -10,6 +10,13 @@ const socialImagePool = [
   "/social-samples/04.jpg",
   "/social-samples/05.jpg",
   "/social-samples/06.jpg",
+];
+
+const defensePuzzleNodes = [
+  { id: "node-1", label: "1", top: "20%", left: "20%" },
+  { id: "node-2", label: "2", top: "20%", left: "72%" },
+  { id: "node-3", label: "3", top: "52%", left: "68%" },
+  { id: "node-4", label: "4", top: "74%", left: "30%" },
 ];
 
 export function PhonePanelOverlay({
@@ -41,10 +48,19 @@ export function PhonePanelOverlay({
   const [blackoutActive, setBlackoutActive] = useState(false);
   const [blackoutFlickerPhase, setBlackoutFlickerPhase] = useState(false);
   const [socialPostCount, setSocialPostCount] = useState(30);
+  const [puzzleStep, setPuzzleStep] = useState(0);
+  const [puzzleFeedback, setPuzzleFeedback] = useState<"idle" | "wrong" | "solved">("idle");
   const trackRef = useRef<HTMLDivElement>(null);
   const socialFeedRef = useRef<HTMLDivElement>(null);
+  const defensePuzzleSolveTimer = useRef<number | null>(null);
   const socialFeedDragging = useRef(false);
   const socialFeedLastY = useRef(0);
+
+  const clearDefensePuzzleSolveTimer = () => {
+    if (defensePuzzleSolveTimer.current === null) return;
+    window.clearTimeout(defensePuzzleSolveTimer.current);
+    defensePuzzleSolveTimer.current = null;
+  };
 
   useEffect(() => {
     const resize = () => {
@@ -55,6 +71,17 @@ export function PhonePanelOverlay({
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
   }, []);
+
+  useEffect(() => {
+    clearDefensePuzzleSolveTimer();
+    setPuzzleStep(0);
+    setPuzzleFeedback("idle");
+    if (screen !== "puzzle") return;
+
+    return () => {
+      clearDefensePuzzleSolveTimer();
+    };
+  }, [screen]);
 
   useEffect(() => {
     if (screen !== "lock") return;
@@ -88,6 +115,38 @@ export function PhonePanelOverlay({
       window.removeEventListener("pointerup", onUp);
     };
   }, [dragging, isDefenseMode, onDefenseSuccess, onUnlock, screen]);
+
+  const handleDefensePuzzleNodePress = (index: number) => {
+    if (screen !== "puzzle") return;
+    if (puzzleFeedback === "solved") return;
+    playPhoneTapClick();
+
+    if (index !== puzzleStep) {
+      clearDefensePuzzleSolveTimer();
+      setPuzzleFeedback("wrong");
+      setPuzzleStep(0);
+      defensePuzzleSolveTimer.current = window.setTimeout(() => {
+        setPuzzleFeedback("idle");
+        clearDefensePuzzleSolveTimer();
+      }, 550);
+      return;
+    }
+
+    const nextStep = index + 1;
+    if (nextStep >= defensePuzzleNodes.length) {
+      clearDefensePuzzleSolveTimer();
+      setPuzzleStep(nextStep);
+      setPuzzleFeedback("solved");
+      defensePuzzleSolveTimer.current = window.setTimeout(() => {
+        onDefenseSuccess();
+        clearDefensePuzzleSolveTimer();
+      }, 220);
+      return;
+    }
+
+    setPuzzleStep(nextStep);
+    setPuzzleFeedback("idle");
+  };
 
   useEffect(() => {
     if (screen !== "social") {
@@ -123,6 +182,14 @@ export function PhonePanelOverlay({
       stopSound();
     };
   }, [blackoutFlickerPhase, screen]);
+
+  useEffect(() => {
+    if (screen !== "puzzle") return;
+    const stopDefenseAudio = startDefensePhaseAudio();
+    return () => {
+      stopDefenseAudio();
+    };
+  }, [screen]);
 
   useEffect(() => {
     if (screen !== "social" || !blackoutActive || blackoutFlickerPhase) return;
@@ -189,6 +256,54 @@ export function PhonePanelOverlay({
                 }}
                 aria-label="Slide to unlock"
               />
+            </div>
+          </div>
+        ) : screen === "puzzle" ? (
+          <div className="phone-defense-puzzle" aria-label="Defense puzzle">
+            <div className="phone-defense-puzzle-head">
+              <div className="phone-defense-badge">defense puzzle</div>
+              <div className="phone-defense-puzzle-title">trace the route</div>
+              <div className="phone-defense-puzzle-copy">
+                tap the glowing nodes in order to finish the defense
+              </div>
+            </div>
+
+            <div
+              className={`phone-defense-puzzle-board${
+                puzzleFeedback === "wrong" ? " is-wrong" : puzzleFeedback === "solved" ? " is-solved" : ""
+              }`}
+              aria-label="Trace the route board"
+            >
+              <div className="phone-defense-puzzle-path" aria-hidden="true" />
+              {defensePuzzleNodes.map((node, index) => {
+                const state = index < puzzleStep ? "complete" : index === puzzleStep ? "active" : "idle";
+                return (
+                  <button
+                    key={node.id}
+                    type="button"
+                    className={`phone-defense-puzzle-node is-${state}`}
+                    style={{ top: node.top, left: node.left }}
+                    onClick={() => handleDefensePuzzleNodePress(index)}
+                    aria-label={`Defense route node ${node.label}`}
+                    data-testid={`defense-puzzle-node-${index + 1}`}
+                  >
+                    <span>{node.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="phone-defense-puzzle-footer">
+              <div className="phone-defense-puzzle-progress" data-testid="defense-puzzle-progress">
+                {Math.min(puzzleStep, defensePuzzleNodes.length)}/{defensePuzzleNodes.length}
+              </div>
+              <div className="phone-defense-puzzle-feedback" aria-live="polite">
+                {puzzleFeedback === "wrong"
+                  ? "route reset"
+                  : puzzleFeedback === "solved"
+                    ? "route unlocked"
+                    : "keep the signal moving"}
+              </div>
             </div>
           </div>
         ) : screen === "home" ? (

@@ -16,21 +16,3 @@ Downloaded model assets:
   Source page: https://www.get3dmodels.com/tools-and-gadgets/phone/
   Listed author: Quaternius
   Listed license: Public domain
-
-- debris-papers-poly-pizza.glb
-  Source page: https://poly.pizza/m/CCRSdAJxsD
-  Direct file: https://static.poly.pizza/fc38cd46-2893-4db1-bd7e-7473e73fa0d5.glb
-  Listed author: Poly Pizza
-  Listed license: CC0 1.0
-
-- paper-poly-pizza.glb
-  Source page: https://poly.pizza/m/a6kuHAjWdYP
-  Direct file: https://static.poly.pizza/d3ab062d-4c6d-4249-a8cc-71da32c86664.glb
-  Listed author: Poly Pizza
-  Listed license: CC-BY 3.0
-
-- tshirt-poly-pizza.glb
-  Source page: https://poly.pizza/m/bdOMzzh-fSl
-  Direct file: https://static.poly.pizza/859b2ce6-83a6-41bc-a7da-8f2ddba25fff.glb
-  Listed author: Poly Pizza
-  Listed license: CC-BY 3.0
