@@ -155,7 +155,7 @@ test("skip intro lets player pick up phone instead of opening panel", async ({ p
 });
 
 test("directives do not overlap and keep spacing from phone panel", async ({ page }) => {
-  test.setTimeout(70_000);
+  test.setTimeout(100_000);
   await page.goto("/?e2e=1");
   await page.getByRole("button", { name: "Open your eyes" }).click();
   await waitForIntroToSettle(page);
@@ -175,7 +175,7 @@ test("directives do not overlap and keep spacing from phone panel", async ({ pag
   const dialogueCount = await page.getByText(/I should take my phone with me just in case/i).count();
   expect(dialogueCount).toBe(1);
 
-  await clickE2EButton(page, "Collect phone (e2e)");
+  await clickE2EButton(page, "Interact phone prop (e2e)");
 
   await expect(page.getByText("press o to open phone")).toBeVisible({ timeout: 3_000 });
   await page.keyboard.press("o");

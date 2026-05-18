@@ -73,7 +73,7 @@ function App() {
   const [phoneOpenHintVisible, setPhoneOpenHintVisible] = useState(false);
   const [closePhoneHintVisible, setClosePhoneHintVisible] = useState(false);
   const [hasOpenedInventoryPhone, setHasOpenedInventoryPhone] = useState(false);
-  const [skipIntroUsed, setSkipIntroUsed] = useState(false);
+  const [phoneReadyForInventoryPickup, setPhoneReadyForInventoryPickup] = useState(false);
   const [gameplayStarted, setGameplayStarted] = useState(false);
   const [gameplayPhase, setGameplayPhase] = useState<GameplayPhase>("bedroom");
   const [lives, setLives] = useState(STARTING_LIVES);
@@ -109,6 +109,7 @@ function App() {
     setPhoneSelected(false);
     setPhonePanelScreen(null);
     setPhoneOpenHintVisible(true);
+    setPhoneReadyForInventoryPickup(false);
     if (unlockMovement) {
       setPhoneUnlocked(true);
     }
@@ -128,7 +129,7 @@ function App() {
   };
 
   const skipIntroToPhonePickup = () => {
-    setSkipIntroUsed(true);
+    setPhoneReadyForInventoryPickup(true);
     setIsAwake(true);
     setIntroPhase("active");
     setHasInteracted(true);
@@ -368,6 +369,7 @@ function App() {
     setCollectedPackIds([]);
     setPhoneChargeSeconds(0);
     setPhoneInInventory(false);
+    setPhoneReadyForInventoryPickup(false);
     setPhoneUnlocked(true);
     setPhoneOn(false);
     setPhonePanelScreen(null);
@@ -399,6 +401,7 @@ function App() {
     setPhoneDefenseMode(false);
     setShowDefenseHint(false);
     setMonsterJumpscare(null);
+    setPhoneReadyForInventoryPickup(false);
 
     switch (preset) {
       case "exploring":
@@ -701,25 +704,32 @@ function App() {
             debugPackFocusId={debugPackFocusId}
             doorOpen={doorOpen}
             onSelectPhone={() => {
-              if (skipIntroUsed) {
-                collectPhoneFromTable({ showFollowupDialogue: true, unlockMovement: true });
+              if (phoneReadyForInventoryPickup) {
+                collectPhoneFromTable({ showFollowupDialogue: !postPhoneDialogueShown, unlockMovement: true });
                 return;
               }
               playPhoneTapClick();
               setPhoneSelected(true);
             }}
             onTurnOnPhone={() => {
+              if (phoneReadyForInventoryPickup) {
+                collectPhoneFromTable({ showFollowupDialogue: !postPhoneDialogueShown, unlockMovement: true });
+                return;
+              }
               playPhoneOpenClick();
               setPhoneOn(true);
               setPhoneUnlocked(false);
               setPhonePanelScreen("lock");
             }}
             onPickupPhone={() => {
-              collectPhoneFromTable({ showFollowupDialogue: skipIntroUsed, unlockMovement: skipIntroUsed });
+              collectPhoneFromTable({
+                showFollowupDialogue: phoneReadyForInventoryPickup && !postPhoneDialogueShown,
+                unlockMovement: phoneReadyForInventoryPickup,
+              });
             }}
             onCollectPack={collectBatteryPack}
             onEnterHallway={startGameplay}
-            skipIntroUsed={skipIntroUsed}
+            skipIntroUsed={phoneReadyForInventoryPickup}
             onToggleDoor={() => {
               setDoorInteractionTick((value) => value + 1);
               setDoorOpen((value) => {
@@ -810,7 +820,7 @@ function App() {
             className="wake-button"
             type="button"
             onClick={() => {
-              setSkipIntroUsed(false);
+              setPhoneReadyForInventoryPickup(false);
               setIsAwake(true);
               setIntroPhase("flicker");
             }}
@@ -889,8 +899,8 @@ function App() {
             className="e2e-open-phone"
             style={{ top: 76 }}
             onClick={() => {
-              if (skipIntroUsed) {
-                collectPhoneFromTable({ showFollowupDialogue: true, unlockMovement: true });
+              if (phoneReadyForInventoryPickup) {
+                collectPhoneFromTable({ showFollowupDialogue: !postPhoneDialogueShown, unlockMovement: true });
                 return;
               }
               playPhoneTapClick();
@@ -906,6 +916,7 @@ function App() {
               setPhoneOn(true);
               setPhoneUnlocked(true);
               setPhoneSelected(true);
+              setPhoneReadyForInventoryPickup(false);
               setPhonePanelScreen("home");
             }}
           >
@@ -922,6 +933,8 @@ function App() {
               setPhoneSelected(false);
               setPhonePanelScreen(null);
               setPhoneOpenHintVisible(true);
+              setPhoneReadyForInventoryPickup(false);
+              setPhoneUnlocked(true);
               void sendInventoryEvent("phone", "collected");
             }}
           >
@@ -990,6 +1003,7 @@ function App() {
             setPhoneDisplayTime((current) => advancePhoneTimeByHour(current));
             if (!postPhoneDialogueShown) {
               setPostPhoneDialogueShown(true);
+              setPhoneReadyForInventoryPickup(true);
               setPostPhoneDialogueVisible(true);
               window.setTimeout(() => {
                 setPostPhoneDialogueVisible(false);

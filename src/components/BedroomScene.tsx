@@ -607,22 +607,6 @@ function SmallPhone({
 }) {
   const { scene } = useGLTF(phoneModelPath);
   const [hovered, setHovered] = useState(false);
-  const autoOpenUsed = useRef(false);
-
-  useEffect(() => {
-    if (disableAutoOpen || !hovered || poweredOn || autoOpenUsed.current) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      autoOpenUsed.current = true;
-      onTurnOn();
-    }, 500);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [disableAutoOpen, hovered, poweredOn, onTurnOn]);
 
   const lockscreenTexture = useMemo(() => createLockscreenTexture(), []);
   const screenOffMaterial = useMemo(
@@ -696,19 +680,28 @@ function SmallPhone({
         event.stopPropagation();
         if (!selected) {
           onSelect();
-          if (!disableAutoOpen && !poweredOn) {
-            onTurnOn();
-          }
+        }
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (event.detail !== 2) return;
+        if (poweredOn) {
+          onPickup();
           return;
         }
+        onTurnOn();
       }}
       onDoubleClick={(event) => {
         event.stopPropagation();
-        onPickup();
+        if (poweredOn) {
+          onPickup();
+          return;
+        }
+        onTurnOn();
       }}
     >
-      <mesh position={[0, 0.02, 0.01]} renderOrder={0}>
-        <boxGeometry args={[0.84, 1.08, 0.24]} />
+      <mesh position={[0.06, 0.04, 0.02]} renderOrder={0}>
+        <boxGeometry args={[1.42, 1.52, 0.44]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       <primitive object={phone} />
