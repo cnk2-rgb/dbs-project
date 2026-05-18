@@ -4,12 +4,13 @@ import { EffectComposer, Vignette } from "@react-three/postprocessing";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import { HallwayWing } from "./scene/HallwayWing";
-import { usePolyHavenMaterial } from "./scene/usePolyHavenMaterial";
+import { BatteryPackField } from "./scene/BatteryPackField";
 import { DebugWallLabel } from "./scene/DebugWallLabel";
 import { DebugCollisionBounds } from "./scene/DebugCollisionBounds";
+import { WallGroup } from "./scene/WallGroup";
 import { useRoughMaterial } from "./scene/useRoughMaterial";
-import { startMovementFootstepAudio } from "../lib/audio";
 import { isBlockedByWorldCollision } from "../lib/worldCollision";
+import { BEDROOM_WALLS } from "../lib/wallDefinitions";
 import {
   CanvasTexture,
   Group,
@@ -93,7 +94,7 @@ export function BedroomScene({
   return (
     <>
       <color attach="background" args={["#0b0f0f"]} />
-      <fog attach="fog" args={["#090c0e", 5.8, 17.5]} />
+      <fog attach="fog" args={["#0b0f0f", 6.5, 19]} />
       <LookOnlyCamera
         enabled={isAwake}
         canMove={phoneUnlocked}
@@ -105,30 +106,31 @@ export function BedroomScene({
         returnToPhoneTick={returnToPhoneTick}
         onEnterHallway={onEnterHallway}
       />
-      <hemisphereLight intensity={0.62} color="#a3b4be" groundColor="#2b2018" />
-      <ambientLight intensity={0.42} color="#8ea0aa" />
+      <hemisphereLight intensity={0.68} color="#9fb4ba" groundColor="#1d1612" />
+      <ambientLight intensity={0.5} color="#879ba5" />
       <directionalLight
         position={[-2.2, 3.2, 1.8]}
-        intensity={1.28}
-        color="#99a6ae"
+        intensity={1.7}
+        color="#8091a0"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <rectAreaLight
-        position={[-0.6, 3.62, 0.45]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        width={4.8}
-        height={3.2}
-        intensity={7.2}
-        color="#e7ece6"
-      />
-      <pointLight position={[-2.7, 1.05, -2.15]} intensity={2.9} color="#f2cda3" distance={4.6} decay={2} />
-      <pointLight position={[2.2, 2.15, -1.7]} intensity={1.35} color="#c0d3df" distance={7.5} decay={2} />
-      <pointLight position={[0.05, 1.12, 2.1]} intensity={1.35} color="#8d9d9b" distance={3.6} decay={2.3} />
+      <pointLight position={[-2.85, 1.15, -2.3]} intensity={5.2} color="#8fb7c6" distance={6.8} decay={2} />
+      <pointLight position={[2.3, 2.2, -1.7]} intensity={1.55} color="#bad6df" distance={8} decay={2} />
+      <pointLight position={[0, 1.2, 2.05]} intensity={1.7} color="#7f9495" distance={3.5} decay={2.3} />
 
       <RoomShell doorOpen={doorOpen} onToggleDoor={onToggleDoor} />
+      <DebugCollisionBounds />
       <HallwayWing />
+      <BatteryPackField
+        visible={gameplayStarted}
+        visibleCount={visiblePackCount}
+        collectedPackIds={collectedPackIds}
+        debugMode={debugMode}
+        debugPackFocusId={debugPackFocusId}
+        onCollectPack={onCollectPack}
+      />
       <Bed />
       <Furniture
         phoneOn={phoneOn}
@@ -182,8 +184,6 @@ function LookOnlyCamera({
   const returnCameraUntil = useRef(0);
   const freezeMovementUntil = useRef(0);
   const hallwayTriggered = useRef(false);
-  const movementFootstepStop = useRef<null | (() => void)>(null);
-  const movementFootstepPlaying = useRef(false);
 
   useEffect(() => {
     if (returnToPhoneTick <= 0) return;
@@ -195,16 +195,6 @@ function LookOnlyCamera({
     movement.current = { forward: false, backward: false, left: false, right: false };
     freezeMovementUntil.current = performance.now() + 320;
   }, [doorInteractionTick]);
-
-  useEffect(() => {
-    return () => {
-      if (movementFootstepStop.current) {
-        movementFootstepStop.current();
-        movementFootstepStop.current = null;
-      }
-      movementFootstepPlaying.current = false;
-    };
-  }, []);
 
   useFrame((_, delta) => {
     const now = performance.now();
@@ -278,10 +268,6 @@ function LookOnlyCamera({
       }
 
       if (movementVector.lengthSq() > 0) {
-        if (!movementFootstepPlaying.current) {
-          movementFootstepPlaying.current = true;
-          movementFootstepStop.current = startMovementFootstepAudio();
-        }
         movementVector.normalize().multiplyScalar(movementSpeed * delta);
         const nextX = position.current.clone();
         nextX.x += movementVector.x;
@@ -298,14 +284,6 @@ function LookOnlyCamera({
         }
       }
 
-      if (movementVector.lengthSq() <= 0 && movementFootstepPlaying.current) {
-        movementFootstepPlaying.current = false;
-        if (movementFootstepStop.current) {
-          movementFootstepStop.current();
-          movementFootstepStop.current = null;
-        }
-      }
-
       const distanceFromBed = Math.hypot(
         position.current.x - fixedHeadPosition.x,
         position.current.z - fixedHeadPosition.z,
@@ -319,14 +297,6 @@ function LookOnlyCamera({
     if (!hallwayTriggered.current && position.current.x < -3.35 && position.current.z < 2.15) {
       hallwayTriggered.current = true;
       onEnterHallway();
-    }
-
-    if ((introPhase !== "active" || inputLocked || !enabled || !canMove) && movementFootstepPlaying.current) {
-      movementFootstepPlaying.current = false;
-      if (movementFootstepStop.current) {
-        movementFootstepStop.current();
-        movementFootstepStop.current = null;
-      }
     }
   });
 
@@ -409,43 +379,10 @@ function LookOnlyCamera({
 }
 
 function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor: () => void }) {
-  const floorMaterial = usePolyHavenMaterial(
-    "/textures/polyhaven/tiled_floor_001/diffuse.jpg",
-    "/textures/polyhaven/tiled_floor_001/roughness.jpg",
-    "/textures/polyhaven/tiled_floor_001/normal.jpg",
-    {
-      baseColor: "#ffffff",
-      repeat: [4, 5],
-      roughness: 0.9,
-      normalScale: 0.7,
-    },
-  );
-  const wallMaterial = usePolyHavenMaterial(
-    "/textures/polyhaven/decrepit_wallpaper/diffuse.jpg",
-    "/textures/polyhaven/decrepit_wallpaper/roughness.jpg",
-    "/textures/polyhaven/decrepit_wallpaper/normal.jpg",
-    {
-      baseColor: "#e0d7c6",
-      repeat: [2.2, 1.35],
-      roughness: 0.96,
-      normalScale: 0.95,
-    },
-  );
-  const ceilingMaterial = useRoughMaterial("#2d3233", "#171d1e", 0.7, "paint", {
-    seed: "bedroom-ceiling",
-    repeat: [3, 2],
-    grimeStrength: 1.05,
-    stainStrength: 0.75,
-    warpStrength: 0.65,
-    edgeWear: 0.7,
-  });
-  const rugMaterial = useRoughMaterial("#15100f", "#080606", 0.96, "fabric", {
-    seed: "bedroom-rug",
-    repeat: [4, 4],
-    grimeStrength: 0.7,
-    stainStrength: 1.15,
-    warpStrength: 0.5,
-  });
+  const floorMaterial = useRoughMaterial("#252626", "#161716", 0.82, "concrete");
+  const wallMaterial = useRoughMaterial("#202221", "#111514", 0.76, "paint");
+  const ceilingMaterial = useRoughMaterial("#2d3233", "#171d1e", 0.62, "paint");
+  const rugMaterial = useRoughMaterial("#15100f", "#080606", 0.96, "fabric");
 
   return (
     <group>
@@ -454,72 +391,20 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
         <primitive object={floorMaterial} attach="material" />
       </mesh>
       <DebugWallLabel id="FLOOR-ALL" position={[-5.5, 0.08, 5]} rotation={[-Math.PI / 2, 0, 0]} />
-
-      <mesh position={[0, 2.25, -4]} receiveShadow>
-        {/* Wall A */}
-        <boxGeometry args={[7, 4.5, 0.18, 16, 10, 1]} />
-        <primitive object={wallMaterial} attach="material" />
-      </mesh>
-      <DebugWallLabel id="A" position={[0, 2.25, -3.86]} oppositePosition={[0, 2.25, -4.14]} rotationY={0} />
-
-      <mesh position={[-3.5, 2.25, -3.325]} receiveShadow>
-        {/* Wall B */}
-        <boxGeometry args={[0.18, 4.5, 2.65, 1, 10, 8]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel
-        id="B"
-        position={[-3.36, 2.25, -3.325]}
-        oppositePosition={[-3.64, 2.25, -3.325]}
-        rotationY={Math.PI / 2}
-      />
-
-      <mesh position={[-3.5, 2.25, 1.6]} receiveShadow>
-        {/* Wall C */}
-        <boxGeometry args={[0.18, 4.5, 4.8, 1, 10, 8]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
-
-      <mesh position={[-3.5, 3.35, -1.4]} receiveShadow>
-        {/* Wall D */}
-        <boxGeometry args={[0.18, 2.3, 1.2, 1, 6, 4]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel
-        id="D"
-        position={[-3.36, 3.35, -1.4]}
-        oppositePosition={[-3.64, 3.35, -1.4]}
-        rotationY={Math.PI / 2}
-      />
-
-      <mesh position={[3.5, 2.25, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        {/* Wall E */}
-        <boxGeometry args={[8, 4.5, 0.18, 16, 10, 1]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel
-        id="E"
-        position={[3.36, 2.25, 0]}
-        oppositePosition={[3.64, 2.25, 0]}
-        rotationY={Math.PI / 2}
-      />
-
-      <mesh position={[0, 2.25, 4.09]} receiveShadow>
-        {/* Back wall between C and E, behind the bed */}
-        <boxGeometry args={[7, 4.5, 0.18, 16, 10, 1]} />
-        <primitive object={wallMaterial.clone()} attach="material" />
-      </mesh>
+      <WallGroup walls={BEDROOM_WALLS} materialForWall={() => wallMaterial.clone()} />
 
       <mesh position={[-5.5, 3.7, 5]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[20, 28, 20, 14]} />
         <primitive object={ceilingMaterial} attach="material" />
       </mesh>
+      <DebugWallLabel id="CEILING-ALL" position={[-5.5, 3.62, 5]} rotation={[Math.PI / 2, 0, 0]} />
 
       <mesh position={[0.2, 0.025, 0.6]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[2.9, 2.1, 6, 6]} />
         <primitive object={rugMaterial} attach="material" />
       </mesh>
 
+      <FloorSeams />
       <Baseboards />
       <Window />
       <Door open={doorOpen} onToggle={onToggleDoor} />
@@ -529,23 +414,9 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
 }
 
 function Bed() {
-  const frame = useRoughMaterial("#181412", "#0a0808", 0.82, "wood", {
-    seed: "bed-frame",
-    repeat: [2, 4],
-    grimeStrength: 0.95,
-  });
-  const mattress = useRoughMaterial("#7c776d", "#36332f", 0.98, "fabric", {
-    seed: "mattress",
-    repeat: [3, 5],
-    grimeStrength: 0.8,
-    stainStrength: 0.95,
-  });
-  const blanket = useRoughMaterial("#2a3431", "#0d1211", 0.98, "fabric", {
-    seed: "blanket",
-    repeat: [4, 6],
-    grimeStrength: 0.85,
-    stainStrength: 1.1,
-  });
+  const frame = useRoughMaterial("#181412", "#0a0808", 0.76, "wood");
+  const mattress = useRoughMaterial("#7c776d", "#36332f", 0.96, "fabric");
+  const blanket = useRoughMaterial("#2a3431", "#0d1211", 0.98, "fabric");
 
   return (
     <group position={[0, 0, 2.55]}>
@@ -589,19 +460,9 @@ function Furniture({
   onPickupPhone: () => void;
   disablePhoneAutoOpen: boolean;
 }) {
-  const wood = useRoughMaterial("#2a211b", "#0d0a08", 0.9, "wood", {
-    seed: "bedroom-wood-furniture",
-    repeat: [2, 3],
-    grimeStrength: 1,
-    edgeWear: 1.1,
-  });
-  const darkMetal = useRoughMaterial("#111415", "#050606", 0.84, "none");
-  const paper = useRoughMaterial("#504940", "#1d1a17", 0.94, "paper", {
-    seed: "bedroom-paper",
-    repeat: [3, 3],
-    grimeStrength: 0.9,
-    stainStrength: 0.75,
-  });
+  const wood = useRoughMaterial("#2a211b", "#0d0a08", 0.88, "wood");
+  const darkMetal = useRoughMaterial("#111415", "#050606", 0.8);
+  const paper = useRoughMaterial("#504940", "#1d1a17", 0.9, "paper");
 
   return (
     <group>
@@ -679,34 +540,28 @@ function Furniture({
           </Suspense>
         )}
       </group>
-
-      <BedroomClutter />
     </group>
   );
 }
 
-function BedroomClutter() {
-  const frame = useRoughMaterial("#2a1f1a", "#0b0706", 0.86, "wood", {
-    seed: "bedroom-frame",
-    repeat: [2, 2],
-    grimeStrength: 0.9,
-  });
+function FloorSeams() {
+  const seam = useRoughMaterial("#101211", "#000000", 0.92, "none");
 
   return (
-    <>
-      <mesh position={[-2.45, 1.66, -3.84]} rotation={[0, 0.08, -0.03]} castShadow receiveShadow>
-        <boxGeometry args={[0.62, 0.48, 0.04]} />
-        <primitive object={frame} attach="material" />
-      </mesh>
-      <mesh position={[-0.9, 0.08, -2.1]} rotation={[-Math.PI / 2, 0.1, 0.24]} receiveShadow>
-        <boxGeometry args={[0.55, 0.18, 0.02]} />
-        <primitive object={frame.clone()} attach="material" />
-      </mesh>
-      <mesh position={[-0.76, 0.08, -2.02]} rotation={[-Math.PI / 2, 0.1, 0.24]}>
-        <boxGeometry args={[0.34, 0.08, 0.01]} />
-        <meshStandardMaterial color="#a59c93" roughness={0.9} />
-      </mesh>
-    </>
+    <group>
+      {[-2.1, -0.7, 0.7, 2.1].map((x) => (
+        <mesh key={`x-${x}`} position={[x, 0.034, 0]} receiveShadow>
+          <boxGeometry args={[0.018, 0.01, 8]} />
+          <primitive object={seam.clone()} attach="material" />
+        </mesh>
+      ))}
+      {[-2.4, -1.2, 0, 1.2, 2.4].map((z) => (
+        <mesh key={`z-${z}`} position={[0, 0.036, z]} receiveShadow>
+          <boxGeometry args={[7, 0.01, 0.018]} />
+          <primitive object={seam.clone()} attach="material" />
+        </mesh>
+      ))}
+    </group>
   );
 }
 

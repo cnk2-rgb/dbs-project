@@ -1,62 +1,22 @@
 import { useRoughMaterial } from "./useRoughMaterial";
-import { usePolyHavenMaterial } from "./usePolyHavenMaterial";
-import { DebugWallLabel } from "./DebugWallLabel";
+import { WallGroup } from "./WallGroup";
 import { useGLTF } from "@react-three/drei";
 import { Suspense, useMemo } from "react";
 import { Mesh } from "three";
+import { OFFICE_WALLS } from "../../lib/wallDefinitions";
 
 const desktopComputerModelPath = "/models/stylized-computer-set-get3dmodels.glb";
 
 export function OfficeArea() {
-  const wall = usePolyHavenMaterial(
-    "/textures/polyhaven/decrepit_wallpaper/diffuse.jpg",
-    "/textures/polyhaven/decrepit_wallpaper/roughness.jpg",
-    "/textures/polyhaven/decrepit_wallpaper/normal.jpg",
-    {
-      baseColor: "#e0d7c6",
-      repeat: [2.4, 1.4],
-      roughness: 0.96,
-      normalScale: 0.95,
-    },
-  );
-  const deskWood = useRoughMaterial("#7f6650", "#24180f", 0.82, "wood", {
-    seed: "office-desk-wood",
-    repeat: [2, 3],
-    grimeStrength: 0.9,
-  });
+  const wall = useRoughMaterial("#263238", "#0a1014", 0.8, "paint");
+  const deskWood = useRoughMaterial("#7f6650", "#24180f", 0.78, "wood");
   const deskDark = useRoughMaterial("#2a3035", "#090d11", 0.56, "none");
   const metal = useRoughMaterial("#8a96a1", "#2a333d", 0.34, "none");
-  const shelf = useRoughMaterial("#5b6870", "#1b232a", 0.78, "wood", {
-    seed: "office-shelf",
-    repeat: [2, 3],
-    grimeStrength: 0.92,
-  });
+  const shelf = useRoughMaterial("#5b6870", "#1b232a", 0.74, "wood");
 
   return (
     <group position={[0, 0, -7.05]}>
-      <mesh position={[-13.1, 2.1, 3.95]} receiveShadow>
-        {/* Wall U */}
-        <boxGeometry args={[3.6, 4.2, 0.14]} />
-        <primitive object={wall} attach="material" />
-      </mesh>
-      <DebugWallLabel id="U" position={[-13.1, 2.1, 3.8]} oppositePosition={[-13.1, 2.1, 4.1]} rotationY={0} />
-      <mesh position={[-13.1, 2.1, -1.05]} receiveShadow>
-        {/* Wall V */}
-        <boxGeometry args={[3.84, 4.2, 0.14]} />
-        <primitive object={wall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel id="V" position={[-13.1, 2.1, -0.9]} oppositePosition={[-13.1, 2.1, -1.2]} rotationY={0} />
-      <mesh position={[-14.9, 2.1, 1.45]} receiveShadow>
-        {/* Wall W */}
-        <boxGeometry args={[0.14, 4.2, 5.0]} />
-        <primitive object={wall.clone()} attach="material" />
-      </mesh>
-      <DebugWallLabel
-        id="W"
-        position={[-14.74, 2.1, 1.45]}
-        oppositePosition={[-15.06, 2.1, 1.45]}
-        rotationY={Math.PI / 2}
-      />
+      <WallGroup walls={OFFICE_WALLS} materialForWall={() => wall.clone()} />
       <group position={[-12.65, 0, 3.25]}>
         <mesh position={[-0.3, 0.74, 0]} castShadow receiveShadow>
           <boxGeometry args={[2.05, 0.09, 0.82]} />
@@ -146,18 +106,16 @@ export function OfficeArea() {
       </group>
 
       <OfficeDetails />
-      <OfficeChair />
 
       <rectAreaLight
         position={[-13.08, 3.95, 2.46]}
         rotation={[-Math.PI / 2, 0, 0]}
         width={2.4}
         height={1.7}
-        intensity={7.4}
-        color="#cfe3f4"
+        intensity={10}
+        color="#d9edf8"
       />
-      <pointLight position={[-12.0, 1.36, 3.02]} intensity={0.95} color="#86bfd9" distance={2.6} decay={2} />
-      <pointLight position={[-14.05, 1.1, 2.3]} intensity={0.7} color="#d8b887" distance={1.9} decay={2} />
+      <pointLight position={[-12.0, 1.36, 3.02]} intensity={1.1} color="#8fd1ff" distance={2.6} decay={2} />
     </group>
   );
 }
@@ -180,28 +138,12 @@ function DesktopComputerModel() {
 }
 
 function OfficeDetails() {
-  const fabric = useRoughMaterial("#23302f", "#0b1110", 0.94, "fabric", {
-    seed: "office-fabric",
-    repeat: [4, 4],
-    grimeStrength: 0.88,
-  });
-  const paper = useRoughMaterial("#cfc2a9", "#6f624d", 0.92, "paper", {
-    seed: "office-paper",
-    repeat: [3, 3],
-    grimeStrength: 0.9,
-  });
-  const box = useRoughMaterial("#80694f", "#2d2118", 0.86, "paper", {
-    seed: "office-box",
-    repeat: [2, 2],
-    grimeStrength: 0.85,
-  });
+  const fabric = useRoughMaterial("#23302f", "#0b1110", 0.94, "fabric");
+  const paper = useRoughMaterial("#cfc2a9", "#6f624d", 0.9, "paper");
+  const box = useRoughMaterial("#80694f", "#2d2118", 0.86, "paper");
   const metal = useRoughMaterial("#7d8790", "#283039", 0.38, "none");
   const dark = useRoughMaterial("#171c20", "#05070a", 0.62, "none");
-  const cork = useRoughMaterial("#7c6040", "#2b1d12", 0.92, "wood", {
-    seed: "office-cork",
-    repeat: [2, 2],
-    grimeStrength: 0.9,
-  });
+  const cork = useRoughMaterial("#7c6040", "#2b1d12", 0.92, "wood");
 
   return (
     <>
@@ -255,72 +197,7 @@ function OfficeDetails() {
         <boxGeometry args={[0.42, 0.62, 0.018]} />
         <primitive object={paper.clone()} attach="material" />
       </mesh>
-
-      <group position={[-12.28, 0.08, 2.9]} rotation={[0, -0.18, 0]}>
-        <mesh position={[0, 0.04, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.54, 0.08, 0.34]} />
-          <primitive object={metal.clone()} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.34, -0.04]} castShadow receiveShadow>
-          <boxGeometry args={[0.5, 0.54, 0.08]} />
-          <primitive object={fabric.clone()} attach="material" />
-        </mesh>
-        <mesh position={[0, 0.62, -0.1]} castShadow receiveShadow>
-          <boxGeometry args={[0.4, 0.14, 0.1]} />
-          <primitive object={fabric.clone()} attach="material" />
-        </mesh>
-      </group>
-      <mesh position={[-13.75, 0.06, 3.1]} rotation={[0, 0.28, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.34, 0.08, 0.22]} />
-        <primitive object={box.clone()} attach="material" />
-      </mesh>
-      <mesh position={[-13.62, 0.16, 3.08]} rotation={[0.02, 0.1, -0.12]} castShadow receiveShadow>
-        <boxGeometry args={[0.22, 0.16, 0.02]} />
-        <primitive object={paper.clone()} attach="material" />
-      </mesh>
     </>
-  );
-}
-
-function OfficeChair() {
-  const frame = useRoughMaterial("#23292f", "#080c10", 0.52, "none");
-  const seat = useRoughMaterial("#192221", "#06090a", 0.96, "fabric", {
-    seed: "office-chair-seat",
-    repeat: [2, 2],
-    grimeStrength: 0.82,
-  });
-  const back = useRoughMaterial("#1a2120", "#05080a", 0.96, "fabric", {
-    seed: "office-chair-back",
-    repeat: [2, 3],
-    grimeStrength: 0.82,
-  });
-
-  return (
-    <group position={[-12.88, 0, 2.65]} rotation={[0, -0.48, 0]}>
-      <mesh position={[0, 0.08, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.18, 0.22, 0.16, 16]} />
-        <primitive object={frame} attach="material" />
-      </mesh>
-      <mesh position={[0, 0.42, 0.02]} castShadow receiveShadow>
-        <boxGeometry args={[0.56, 0.08, 0.48]} />
-        <primitive object={seat} attach="material" />
-      </mesh>
-      <mesh position={[0, 0.84, -0.16]} castShadow receiveShadow>
-        <boxGeometry args={[0.46, 0.82, 0.06]} />
-        <primitive object={back} attach="material" />
-      </mesh>
-      {[
-        [-0.18, 0, -0.18],
-        [0.18, 0, -0.18],
-        [-0.18, 0, 0.18],
-        [0.18, 0, 0.18],
-      ].map(([x, y, z]) => (
-        <mesh key={`${x}-${z}`} position={[x, 0.08, z]} castShadow>
-          <cylinderGeometry args={[0.02, 0.02, 0.16, 8]} />
-          <primitive object={frame.clone()} attach="material" />
-        </mesh>
-      ))}
-    </group>
   );
 }
 
