@@ -370,6 +370,10 @@ export function PhonePanelOverlay({
         ) : screen === "social" ? (
           <div className="phone-social">
             <div className="phone-social-header">For You</div>
+            <div className="phone-social-hint" aria-hidden="true">
+              <div className="phone-social-hint-title">scroll to browse</div>
+              <div className="phone-social-hint-copy">drag up and down to move through the feed</div>
+            </div>
             <div
               className="phone-social-feed"
               ref={socialFeedRef}

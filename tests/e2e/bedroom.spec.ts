@@ -113,6 +113,32 @@ test("social feed click triggers blackout then closes panel", async ({ page }) =
   await expect(page.getByText(/what was that\?\?/i)).toBeVisible({ timeout: 4_000 });
 });
 
+test("keeps the unlock tutorial overlay visible", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto("/?e2e=1");
+  await page.getByRole("button", { name: "Open your eyes" }).click();
+  await waitForIntroToSettle(page);
+  await waitForE2EControls(page);
+
+  await clickGameplayControl(page, "Set unlock");
+  await expect(page.locator(".phone-focus-slider-label")).toHaveText("slide to unlock", { timeout: 5_000 });
+});
+
+test("keeps the scroll tutorial overlay visible", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto("/?e2e=1");
+  await page.getByRole("button", { name: "Open your eyes" }).click();
+  await waitForIntroToSettle(page);
+  await waitForE2EControls(page);
+
+  await clickE2EButton(page, "Open phone panel (e2e)");
+  await expect(page.locator(".phone-focus-panel")).toBeVisible({ timeout: 5_000 });
+  await page.getByLabel("Open social feed").click();
+  await expect(page.locator(".phone-social")).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator(".phone-social-hint")).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator(".phone-social-hint")).toContainText(/scroll to browse/i);
+});
+
 test("skip intro lets player pick up phone instead of opening panel", async ({ page }) => {
   test.setTimeout(45_000);
   await page.goto("/?e2e=1");

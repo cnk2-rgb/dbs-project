@@ -696,6 +696,10 @@ function SmallPhone({
         event.stopPropagation();
         if (!selected) {
           onSelect();
+          if (!disableAutoOpen && !poweredOn) {
+            onTurnOn();
+          }
+          return;
         }
       }}
       onDoubleClick={(event) => {
@@ -703,6 +707,10 @@ function SmallPhone({
         onPickup();
       }}
     >
+      <mesh position={[0, 0.02, 0.01]} renderOrder={0}>
+        <boxGeometry args={[0.84, 1.08, 0.24]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
       <primitive object={phone} />
       <mesh position={[0, 0, 0.062]} rotation={[0, 0, poweredOn ? Math.PI : 0]}>
         <planeGeometry args={[0.36, 0.69]} />

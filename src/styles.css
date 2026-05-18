@@ -1095,6 +1095,30 @@ button {
   border-bottom: 1px solid rgba(214, 228, 239, 0.18);
 }
 
+.phone-social-hint {
+  margin: 10px 10px 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(214, 228, 239, 0.16);
+  border-radius: 12px;
+  background: rgba(7, 10, 14, 0.48);
+  pointer-events: none;
+}
+
+.phone-social-hint-title {
+  color: rgba(247, 250, 255, 0.94);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.phone-social-hint-copy {
+  margin-top: 3px;
+  color: rgba(219, 230, 238, 0.72);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
 .phone-social-feed {
   flex: 1;
   overflow-y: auto;
