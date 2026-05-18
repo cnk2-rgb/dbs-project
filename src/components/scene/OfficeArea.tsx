@@ -1,10 +1,9 @@
 import { useRoughMaterial } from "./useRoughMaterial";
-import { WallGroup } from "./WallGroup";
 import { usePolyHavenMaterial } from "./usePolyHavenMaterial";
+import { DebugWallLabel } from "./DebugWallLabel";
 import { useGLTF } from "@react-three/drei";
 import { Suspense, useMemo } from "react";
 import { Mesh } from "three";
-import { OFFICE_WALLS } from "../../lib/wallDefinitions";
 
 const desktopComputerModelPath = "/models/stylized-computer-set-get3dmodels.glb";
 
@@ -35,7 +34,29 @@ export function OfficeArea() {
 
   return (
     <group position={[0, 0, -7.05]}>
-      <WallGroup walls={OFFICE_WALLS} materialForWall={() => wall.clone()} />
+      <mesh position={[-13.1, 2.1, 3.95]} receiveShadow>
+        {/* Wall U */}
+        <boxGeometry args={[3.6, 4.2, 0.14]} />
+        <primitive object={wall} attach="material" />
+      </mesh>
+      <DebugWallLabel id="U" position={[-13.1, 2.1, 3.8]} oppositePosition={[-13.1, 2.1, 4.1]} rotationY={0} />
+      <mesh position={[-13.1, 2.1, -1.05]} receiveShadow>
+        {/* Wall V */}
+        <boxGeometry args={[3.84, 4.2, 0.14]} />
+        <primitive object={wall.clone()} attach="material" />
+      </mesh>
+      <DebugWallLabel id="V" position={[-13.1, 2.1, -0.9]} oppositePosition={[-13.1, 2.1, -1.2]} rotationY={0} />
+      <mesh position={[-14.9, 2.1, 1.45]} receiveShadow>
+        {/* Wall W */}
+        <boxGeometry args={[0.14, 4.2, 5.0]} />
+        <primitive object={wall.clone()} attach="material" />
+      </mesh>
+      <DebugWallLabel
+        id="W"
+        position={[-14.74, 2.1, 1.45]}
+        oppositePosition={[-15.06, 2.1, 1.45]}
+        rotationY={Math.PI / 2}
+      />
       <group position={[-12.65, 0, 3.25]}>
         <mesh position={[-0.3, 0.74, 0]} castShadow receiveShadow>
           <boxGeometry args={[2.05, 0.09, 0.82]} />
