@@ -1,16 +1,37 @@
 import { useRoughMaterial } from "./useRoughMaterial";
 import { RoomLabel } from "./RoomLabel";
 import { WallGroup } from "./WallGroup";
+import { Suspense } from "react";
+import { DebrisPapersModel, PaperModel, TshirtModel } from "./ImportedClutterModels";
 import { KITCHEN_WALLS } from "../../lib/wallDefinitions";
 
 export function KitchenArea() {
-  const kitchenWall = useRoughMaterial("#202b31", "#0b1116", 0.76, "paint");
-  const kitchenCabinet = useRoughMaterial("#dad4c8", "#5f5a50", 0.62, "wood");
-  const kitchenCounter = useRoughMaterial("#c6c1b5", "#6c6558", 0.52, "concrete");
-  const kitchenMetal = useRoughMaterial("#9ea6ad", "#394149", 0.28, "none");
-  const kitchenDark = useRoughMaterial("#2a2f34", "#0a0d10", 0.46, "none");
-  const kitchenWood = useRoughMaterial("#9a7f61", "#3e2c1e", 0.78, "wood");
-  const kitchenFridge = useRoughMaterial("#e8ecef", "#8f989f", 0.24, "none");
+  const kitchenWall = useRoughMaterial("#202b31", "#0b1116", 0.82, "paint", {
+    seed: "kitchen-wall",
+    repeat: [3, 3],
+    grimeStrength: 1.25,
+    stainStrength: 1.2,
+    warpStrength: 0.75,
+  });
+  const kitchenCabinet = useRoughMaterial("#dad4c8", "#5f5a50", 0.68, "wood", {
+    seed: "kitchen-cabinet",
+    repeat: [2, 3],
+    grimeStrength: 1.05,
+    edgeWear: 1.1,
+  });
+  const kitchenCounter = useRoughMaterial("#c6c1b5", "#6c6558", 0.6, "concrete", {
+    seed: "kitchen-counter",
+    repeat: [4, 4],
+    grimeStrength: 1.1,
+    stainStrength: 1.05,
+  });
+  const kitchenMetal = useRoughMaterial("#9ea6ad", "#394149", 0.34, "none");
+  const kitchenDark = useRoughMaterial("#2a2f34", "#0a0d10", 0.5, "none");
+  const kitchenWood = useRoughMaterial("#9a7f61", "#3e2c1e", 0.82, "wood", {
+    seed: "kitchen-wood",
+    repeat: [2, 3],
+    grimeStrength: 0.95,
+  });
 
   return (
     <>
@@ -114,6 +135,7 @@ export function KitchenArea() {
 
         <KitchenAppliances />
         <KitchenCounterDetails />
+        <KitchenClutter />
       </group>
 
       <rectAreaLight
@@ -121,10 +143,11 @@ export function KitchenArea() {
         rotation={[-Math.PI / 2, 0, 0]}
         width={2.4}
         height={1.1}
-        intensity={9}
-        color="#fff2d1"
+        intensity={7.2}
+        color="#ecf0dc"
       />
-      <pointLight position={[-7.15, 1.45, 6.48]} intensity={1.2} color="#ffe8ba" distance={2.4} decay={2} />
+      <pointLight position={[-7.15, 1.45, 6.48]} intensity={0.95} color="#cddab9" distance={2.4} decay={2} />
+      <pointLight position={[-4.8, 1.2, 2.4]} intensity={0.65} color="#8aa0a6" distance={2.2} decay={2.2} />
     </>
   );
 }
@@ -187,10 +210,22 @@ function KitchenAppliances() {
 }
 
 function KitchenCounterDetails() {
-  const ceramic = useRoughMaterial("#e7e2d5", "#756f65", 0.66, "concrete");
+  const ceramic = useRoughMaterial("#e7e2d5", "#756f65", 0.72, "concrete", {
+    seed: "kitchen-ceramic",
+    repeat: [2, 2],
+    grimeStrength: 0.9,
+  });
   const glass = useRoughMaterial("#88b8c8", "#2e5965", 0.18, "none");
-  const paper = useRoughMaterial("#d7cbb6", "#6f624f", 0.92, "paper");
+  const paper = useRoughMaterial("#d7cbb6", "#6f624f", 0.92, "paper", {
+    seed: "kitchen-paper",
+    repeat: [3, 3],
+    grimeStrength: 0.85,
+  });
   const dark = useRoughMaterial("#2a2f34", "#0a0d10", 0.46, "none");
+  const wood = useRoughMaterial("#7d5f42", "#2f2014", 0.84, "wood", {
+    seed: "kitchen-small-wood",
+    repeat: [2, 3],
+  });
 
   return (
     <>
@@ -213,6 +248,43 @@ function KitchenCounterDetails() {
       <mesh position={[0.34, 0.56, 0.5]} castShadow receiveShadow>
         <boxGeometry args={[0.52, 0.04, 0.34]} />
         <primitive object={dark} attach="material" />
+      </mesh>
+      <mesh position={[-0.88, 1.19, 3.06]} rotation={[0, 0.32, 0.18]} castShadow receiveShadow>
+        <boxGeometry args={[0.46, 0.04, 0.28]} />
+        <primitive object={wood} attach="material" />
+      </mesh>
+      <mesh position={[-0.64, 1.16, 3.07]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.06, 0.07, 0.18, 14]} />
+        <primitive object={glass} attach="material" />
+      </mesh>
+      <mesh position={[0.72, 1.14, 2.98]} rotation={[0.18, 0.04, -0.14]} castShadow receiveShadow>
+        <boxGeometry args={[0.2, 0.16, 0.08]} />
+        <primitive object={paper} attach="material" />
+      </mesh>
+    </>
+  );
+}
+
+function KitchenClutter() {
+  const wood = useRoughMaterial("#6d523c", "#281b12", 0.88, "wood", {
+    seed: "kitchen-serving-board",
+    repeat: [2, 3],
+  });
+
+  return (
+    <>
+      <mesh position={[-2.2, 1.06, 2.86]} rotation={[0.14, 0.12, 0.04]} castShadow receiveShadow>
+        <boxGeometry args={[0.36, 0.04, 0.24]} />
+        <primitive object={wood} attach="material" />
+      </mesh>
+      <Suspense fallback={null}>
+        <PaperModel position={[-2.12, 1.08, 3.0]} rotation={[0.1, 0.22, -0.04]} scale={0.075} />
+        <TshirtModel position={[1.42, 0.02, 0.95]} rotation={[0.14, -0.24, -0.42]} scale={0.17} />
+        <DebrisPapersModel position={[1.98, 0.01, 0.84]} rotation={[0.08, 0.15, 0.08]} scale={0.11} />
+      </Suspense>
+      <mesh position={[-0.42, 0.03, 2.9]} rotation={[0, 0.1, 0]} receiveShadow>
+        <boxGeometry args={[0.62, 0.02, 0.46]} />
+        <primitive object={wood.clone()} attach="material" />
       </mesh>
     </>
   );

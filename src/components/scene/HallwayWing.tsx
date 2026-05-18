@@ -7,12 +7,19 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useMemo, useRef, useState } from "react";
 import { Group, MathUtils, Mesh } from "three";
+import { DebrisPapersModel, PaperModel, TshirtModel } from "./ImportedClutterModels";
 import { HALLWAY_WALLS } from "../../lib/wallDefinitions";
 
 const pianoModelPath = "/models/antique-wooden-piano-get3dmodels.glb";
 
 export function HallwayWing() {
-  const hallwayWall = useRoughMaterial("#202b31", "#0b1116", 0.76, "paint");
+  const hallwayWall = useRoughMaterial("#202b31", "#0b1116", 0.84, "paint", {
+    seed: "hallway-wall",
+    repeat: [3, 4],
+    grimeStrength: 1.25,
+    stainStrength: 1.15,
+    warpStrength: 0.8,
+  });
   const wallFTop = hallwayWall.clone();
   wallFTop.roughness = 1;
   wallFTop.metalness = 0;
@@ -41,44 +48,45 @@ export function HallwayWing() {
         rotation={[-Math.PI / 2, 0, 0]}
         width={2.2}
         height={1.4}
-        intensity={16.5}
-        color="#edf4f9"
+        intensity={10.5}
+        color="#dbe7ed"
       />
       <rectAreaLight
         position={[-7.2, 3.95, -1.35]}
         rotation={[-Math.PI / 2, 0, 0]}
         width={3.2}
         height={1.4}
-        intensity={11}
-        color="#d6e9f5"
+        intensity={7.8}
+        color="#cbdde9"
       />
       <rectAreaLight
         position={[-8.1, 3.95, 1.4]}
         rotation={[-Math.PI / 2, 0, 0]}
         width={2.4}
         height={1.4}
-        intensity={10.5}
-        color="#d3e6f2"
+        intensity={6.8}
+        color="#d8e4cd"
       />
       <rectAreaLight
         position={[-12.5, 3.95, 5.2]}
         rotation={[-Math.PI / 2, 0, 0]}
         width={2.0}
         height={1.5}
-        intensity={15}
-        color="#eef6fb"
+        intensity={8.9}
+        color="#dfe9d3"
       />
-      <pointLight position={[-12.7, 2.5, 5.4]} intensity={2.4} color="#cfe6f5" distance={4.2} decay={2} />
+      <pointLight position={[-12.7, 2.5, 5.4]} intensity={1.5} color="#cfe6f5" distance={4.2} decay={2} />
       <rectAreaLight
         position={[-10.375, 3.95, 14.6]}
         rotation={[-Math.PI / 2, 0, 0]}
         width={4.2}
         height={2.8}
-        intensity={18}
-        color="#f4f6f8"
+        intensity={11}
+        color="#f0e2c7"
       />
-      <pointLight position={[-11.9, 2.4, 13.8]} intensity={2.8} color="#ffe2bc" distance={5.8} decay={2} />
-      <pointLight position={[-8.9, 2.4, 15.3]} intensity={2.8} color="#c8def1" distance={5.8} decay={2} />
+      <pointLight position={[-11.9, 2.4, 13.8]} intensity={2.1} color="#ffe2bc" distance={5.8} decay={2} />
+      <pointLight position={[-8.9, 2.4, 15.3]} intensity={1.8} color="#c8def1" distance={5.8} decay={2} />
+      <pointLight position={[-10.2, 1.2, -1.9]} intensity={0.9} color="#9ab69a" distance={2.2} decay={2.2} />
 
       <HallwayDetails />
       <BathroomFixtures />
@@ -182,9 +190,21 @@ function BathroomDoor() {
 }
 
 function HallwayDetails() {
-  const wood = useRoughMaterial("#3a2b21", "#110b08", 0.86, "wood");
-  const fabric = useRoughMaterial("#1e2b2e", "#080e10", 0.96, "fabric");
-  const paper = useRoughMaterial("#bfb19b", "#5d5142", 0.9, "paper");
+  const wood = useRoughMaterial("#3a2b21", "#110b08", 0.88, "wood", {
+    seed: "hallway-wood",
+    repeat: [2, 3],
+    grimeStrength: 1,
+  });
+  const fabric = useRoughMaterial("#1e2b2e", "#080e10", 0.96, "fabric", {
+    seed: "hallway-fabric",
+    repeat: [3, 4],
+    grimeStrength: 0.95,
+  });
+  const paper = useRoughMaterial("#bfb19b", "#5d5142", 0.9, "paper", {
+    seed: "hallway-paper",
+    repeat: [2, 2],
+    grimeStrength: 0.85,
+  });
   const dark = useRoughMaterial("#151a1d", "#050608", 0.62, "none");
   const brass = useRoughMaterial("#8e7242", "#322310", 0.42, "none");
 
@@ -223,20 +243,33 @@ function HallwayDetails() {
         ))}
       </group>
 
-      <mesh position={[-6.45, 0.08, 0.03]} rotation={[-Math.PI / 2, 0, -0.18]} receiveShadow>
-        <boxGeometry args={[0.62, 0.42, 0.018]} />
-        <primitive object={paper} attach="material" />
-      </mesh>
+      <Suspense fallback={null}>
+        <PaperModel position={[-6.45, 0.03, 0.03]} rotation={[-Math.PI / 2, 0.1, -0.18]} scale={0.095} />
+        <DebrisPapersModel position={[-7.82, 0.02, -2.78]} rotation={[-Math.PI / 2, 0.08, 0.06]} scale={0.11} />
+        <TshirtModel position={[-8.28, 0.01, -1.74]} rotation={[0.08, 0.1, -0.2]} scale={0.13} />
+      </Suspense>
     </>
   );
 }
 
 function BathroomFixtures() {
-  const porcelain = useRoughMaterial("#ece8df", "#8b8578", 0.48, "concrete");
+  const porcelain = useRoughMaterial("#ece8df", "#8b8578", 0.56, "concrete", {
+    seed: "bathroom-porcelain",
+    repeat: [2, 2],
+    grimeStrength: 0.8,
+  });
   const metal = useRoughMaterial("#aab2b6", "#3f484d", 0.24, "none");
   const glass = useRoughMaterial("#9ed0dc", "#3e6a75", 0.12, "none");
-  const wood = useRoughMaterial("#584437", "#1b120d", 0.82, "wood");
-  const towel = useRoughMaterial("#6d1f22", "#220708", 0.96, "fabric");
+  const wood = useRoughMaterial("#584437", "#1b120d", 0.82, "wood", {
+    seed: "bathroom-wood",
+    repeat: [2, 3],
+    grimeStrength: 0.9,
+  });
+  const towel = useRoughMaterial("#6d1f22", "#220708", 0.96, "fabric", {
+    seed: "bathroom-towel",
+    repeat: [2, 3],
+    grimeStrength: 0.9,
+  });
 
   return (
     <>
@@ -305,12 +338,32 @@ function BathroomFixtures() {
 }
 
 function LivingRoomFurniture() {
-  const couch = useRoughMaterial("#273a36", "#0b1210", 0.96, "fabric");
-  const cushion = useRoughMaterial("#b7a486", "#594a35", 0.92, "fabric");
-  const wood = useRoughMaterial("#4a3326", "#150d09", 0.82, "wood");
+  const couch = useRoughMaterial("#273a36", "#0b1210", 0.96, "fabric", {
+    seed: "living-room-couch",
+    repeat: [4, 5],
+    grimeStrength: 0.9,
+  });
+  const cushion = useRoughMaterial("#b7a486", "#594a35", 0.92, "fabric", {
+    seed: "living-room-cushion",
+    repeat: [3, 3],
+    grimeStrength: 0.85,
+  });
+  const wood = useRoughMaterial("#4a3326", "#150d09", 0.84, "wood", {
+    seed: "living-room-wood",
+    repeat: [2, 3],
+    grimeStrength: 0.95,
+  });
   const dark = useRoughMaterial("#11161a", "#040506", 0.5, "none");
-  const paper = useRoughMaterial("#bfb5a4", "#5e5549", 0.9, "paper");
-  const lampShade = useRoughMaterial("#d9c8a6", "#6c5a3d", 0.78, "fabric");
+  const paper = useRoughMaterial("#bfb5a4", "#5e5549", 0.92, "paper", {
+    seed: "living-room-paper",
+    repeat: [3, 3],
+    grimeStrength: 0.8,
+  });
+  const lampShade = useRoughMaterial("#d9c8a6", "#6c5a3d", 0.78, "fabric", {
+    seed: "living-room-lamp",
+    repeat: [2, 3],
+    grimeStrength: 0.8,
+  });
 
   return (
     <>
@@ -384,6 +437,12 @@ function LivingRoomFurniture() {
         </mesh>
         <pointLight position={[0, 1.18, 0]} intensity={1.8} color="#ffdba6" distance={3.2} decay={2} />
       </group>
+
+      <Suspense fallback={null}>
+        <DebrisPapersModel position={[-9.1, 0.02, 15.85]} rotation={[0.08, 0.14, 0.1]} scale={0.16} />
+        <TshirtModel position={[-11.2, 0.01, 15.95]} rotation={[0.02, 0.08, -0.26]} scale={0.1} />
+        <PaperModel position={[-8.7, 0.02, 14.28]} rotation={[0, -0.2, 0.04]} scale={0.085} />
+      </Suspense>
     </>
   );
 }
