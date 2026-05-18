@@ -4,7 +4,11 @@ import App from "./App";
 import "./styles.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
-  <StrictMode>
+  import.meta.env.PROD ? (
+    <StrictMode>
+      <App />
+    </StrictMode>
+  ) : (
     <App />
-  </StrictMode>,
+  ),
 );

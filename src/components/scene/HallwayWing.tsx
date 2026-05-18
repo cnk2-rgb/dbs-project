@@ -2,6 +2,7 @@ import { KitchenArea } from "./KitchenArea";
 import { OfficeArea } from "./OfficeArea";
 import { RoomLabel } from "./RoomLabel";
 import { WallGroup } from "./WallGroup";
+import { usePolyHavenMaterial } from "./usePolyHavenMaterial";
 import { useRoughMaterial } from "./useRoughMaterial";
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -12,13 +13,17 @@ import { HALLWAY_WALLS } from "../../lib/wallDefinitions";
 const pianoModelPath = "/models/antique-wooden-piano-get3dmodels.glb";
 
 export function HallwayWing() {
-  const hallwayWall = useRoughMaterial("#202b31", "#0b1116", 0.84, "paint", {
-    seed: "hallway-wall",
-    repeat: [3, 4],
-    grimeStrength: 1.25,
-    stainStrength: 1.15,
-    warpStrength: 0.8,
-  });
+  const hallwayWall = usePolyHavenMaterial(
+    "/textures/polyhaven/decrepit_wallpaper/diffuse.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/roughness.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/normal.jpg",
+    {
+      baseColor: "#e0d7c6",
+      repeat: [2.4, 1.4],
+      roughness: 0.96,
+      normalScale: 0.95,
+    },
+  );
   const wallFTop = hallwayWall.clone();
   wallFTop.roughness = 1;
   wallFTop.metalness = 0;

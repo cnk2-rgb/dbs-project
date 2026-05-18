@@ -4,12 +4,9 @@ import { EffectComposer, Vignette } from "@react-three/postprocessing";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import { HallwayWing } from "./scene/HallwayWing";
-import { BatteryPackField } from "./scene/BatteryPackField";
-import { DebugWallLabel } from "./scene/DebugWallLabel";
 import { usePolyHavenMaterial } from "./scene/usePolyHavenMaterial";
 import { WallGroup } from "./scene/WallGroup";
 import { useRoughMaterial } from "./scene/useRoughMaterial";
-import { BATTERY_PACK_DEFINITIONS, getBatteryPackFocusPoint } from "../lib/batteryPacks";
 import { startMovementFootstepAudio } from "../lib/audio";
 import { isBlockedByWorldCollision } from "../lib/worldCollision";
 import { BEDROOM_WALLS } from "../lib/wallDefinitions";
@@ -93,11 +90,6 @@ export function BedroomScene({
   doorInteractionTick: number;
   returnToPhoneTick: number;
 }) {
-  const debugPackFocus = useMemo(
-    () => BATTERY_PACK_DEFINITIONS.find((pack) => pack.id === debugPackFocusId) ?? null,
-    [debugPackFocusId],
-  );
-
   return (
     <>
       <color attach="background" args={["#0b0f0f"]} />
@@ -111,7 +103,6 @@ export function BedroomScene({
         phonePanelActive={phonePanelActive}
         doorInteractionTick={doorInteractionTick}
         returnToPhoneTick={returnToPhoneTick}
-        debugPackFocus={debugPackFocus}
         onEnterHallway={onEnterHallway}
       />
       <hemisphereLight intensity={0.62} color="#a3b4be" groundColor="#2b2018" />
@@ -138,14 +129,6 @@ export function BedroomScene({
 
       <RoomShell doorOpen={doorOpen} onToggleDoor={onToggleDoor} />
       <HallwayWing />
-      <BatteryPackField
-        visible={gameplayStarted}
-        visibleCount={visiblePackCount}
-        collectedPackIds={collectedPackIds}
-        debugMode={debugMode}
-        debugPackFocusId={debugPackFocusId}
-        onCollectPack={onCollectPack}
-      />
       <Bed />
       <Furniture
         phoneOn={phoneOn}
@@ -174,7 +157,6 @@ function LookOnlyCamera({
   phonePanelActive,
   doorInteractionTick,
   returnToPhoneTick,
-  debugPackFocus,
   onEnterHallway,
 }: {
   enabled: boolean;
@@ -185,7 +167,6 @@ function LookOnlyCamera({
   phonePanelActive: boolean;
   doorInteractionTick: number;
   returnToPhoneTick: number;
-  debugPackFocus: (typeof BATTERY_PACK_DEFINITIONS)[number] | null;
   onEnterHallway: () => void;
 }) {
   const { camera, gl } = useThree();
@@ -208,23 +189,6 @@ function LookOnlyCamera({
     if (returnToPhoneTick <= 0) return;
     returnCameraUntil.current = performance.now() + 2200;
   }, [returnToPhoneTick]);
-
-  useEffect(() => {
-    if (!debugPackFocus) return;
-
-    const focusPoint = getBatteryPackFocusPoint(debugPackFocus);
-    const lookTarget = new Vector3(debugPackFocus.position[0], debugPackFocus.position[1], debugPackFocus.position[2]);
-
-    position.current.copy(focusPoint);
-    movement.current = { forward: false, backward: false, left: false, right: false };
-    camera.position.copy(position.current);
-    camera.lookAt(lookTarget);
-    camera.rotation.order = "YXZ";
-    yaw.current = camera.rotation.y;
-    pitch.current = camera.rotation.x;
-    targetYaw.current = camera.rotation.y;
-    targetPitch.current = camera.rotation.x;
-  }, [camera, debugPackFocus]);
 
   useEffect(() => {
     if (doorInteractionTick <= 0) return;
@@ -448,19 +412,23 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
   const floorMaterial = usePolyHavenMaterial(
     "/textures/polyhaven/tiled_floor_001/diffuse.jpg",
     "/textures/polyhaven/tiled_floor_001/roughness.jpg",
+    "/textures/polyhaven/tiled_floor_001/normal.jpg",
     {
       baseColor: "#ffffff",
       repeat: [4, 5],
       roughness: 0.9,
+      normalScale: 0.7,
     },
   );
   const wallMaterial = usePolyHavenMaterial(
-    "/textures/polyhaven/concrete_wall_001/diffuse.jpg",
-    "/textures/polyhaven/concrete_wall_001/roughness.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/diffuse.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/roughness.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/normal.jpg",
     {
-      baseColor: "#d7d2c7",
-      repeat: [2.6, 1.15],
-      roughness: 0.98,
+      baseColor: "#e0d7c6",
+      repeat: [2.2, 1.35],
+      roughness: 0.96,
+      normalScale: 0.95,
     },
   );
   const ceilingMaterial = useRoughMaterial("#2d3233", "#171d1e", 0.7, "paint", {
@@ -485,14 +453,12 @@ function RoomShell({ doorOpen, onToggleDoor }: { doorOpen: boolean; onToggleDoor
         <planeGeometry args={[20, 28, 36, 24]} />
         <primitive object={floorMaterial} attach="material" />
       </mesh>
-      <DebugWallLabel id="FLOOR-ALL" position={[-5.5, 0.08, 5]} rotation={[-Math.PI / 2, 0, 0]} />
       <WallGroup walls={BEDROOM_WALLS} materialForWall={() => wallMaterial.clone()} />
 
       <mesh position={[-5.5, 3.7, 5]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[20, 28, 20, 14]} />
         <primitive object={ceilingMaterial} attach="material" />
       </mesh>
-      <DebugWallLabel id="CEILING-ALL" position={[-5.5, 3.62, 5]} rotation={[Math.PI / 2, 0, 0]} />
 
       <mesh position={[0.2, 0.025, 0.6]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[2.9, 2.1, 6, 6]} />

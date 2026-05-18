@@ -1,17 +1,22 @@
 import { useRoughMaterial } from "./useRoughMaterial";
+import { usePolyHavenMaterial } from "./usePolyHavenMaterial";
 import { RoomLabel } from "./RoomLabel";
 import { WallGroup } from "./WallGroup";
 import { Suspense } from "react";
 import { KITCHEN_WALLS } from "../../lib/wallDefinitions";
 
 export function KitchenArea() {
-  const kitchenWall = useRoughMaterial("#202b31", "#0b1116", 0.82, "paint", {
-    seed: "kitchen-wall",
-    repeat: [3, 3],
-    grimeStrength: 1.25,
-    stainStrength: 1.2,
-    warpStrength: 0.75,
-  });
+  const kitchenWall = usePolyHavenMaterial(
+    "/textures/polyhaven/decrepit_wallpaper/diffuse.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/roughness.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/normal.jpg",
+    {
+      baseColor: "#e0d7c6",
+      repeat: [2.4, 1.4],
+      roughness: 0.96,
+      normalScale: 0.95,
+    },
+  );
   const kitchenCabinet = useRoughMaterial("#dad4c8", "#5f5a50", 0.68, "wood", {
     seed: "kitchen-cabinet",
     repeat: [2, 3],

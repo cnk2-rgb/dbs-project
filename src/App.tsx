@@ -28,11 +28,14 @@ import {
 const smsWebhookUrl = (import.meta.env.VITE_SMS_WEBHOOK_URL ?? "").trim();
 const smsFromNumber = (import.meta.env.VITE_TWILIO_FROM_NUMBER ?? "").trim();
 const inventoryWebhookUrl = (import.meta.env.VITE_INVENTORY_WEBHOOK_URL ?? "").trim();
+const youtubeIframeApiScriptId = "youtube-iframe-api";
 const monsterJumpscareImages = [
   new URL("../monsters/monster-chatgpt-evil.png", import.meta.url).href,
   new URL("../monsters/monster-chatgpt-silent.png", import.meta.url).href,
   new URL("../monsters/monster-sad.jpeg", import.meta.url).href,
 ];
+
+let youtubeIframeApiPromise: Promise<void> | null = null;
 
 type E2EGameplayPreset =
   | "exploring"
@@ -140,21 +143,23 @@ function App() {
   };
 
   useEffect(() => {
-    const onYouTubeIframeAPIReady = () => {
-      const win = window as typeof window & {
-        YT?: {
-          Player: new (
-            elementId: string,
-            options: {
-              videoId: string;
-              playerVars?: Record<string, number>;
-              events?: { onReady?: () => void };
-            },
-          ) => YouTubePlayer;
-        };
+    const win = window as typeof window & {
+      YT?: {
+        Player: new (
+          elementId: string,
+          options: {
+            videoId: string;
+            playerVars?: Record<string, number>;
+            events?: { onReady?: () => void };
+          },
+        ) => YouTubePlayer;
       };
+      onYouTubeIframeAPIReady?: () => void;
+    };
 
-      if (!win.YT) return;
+    const createPlayer = () => {
+      if (!win.YT || youtubePlayerRef.current) return;
+
       youtubePlayerRef.current = new win.YT.Player("landing-bg-music", {
         videoId: "PLFVGwGQcB0",
         playerVars: {
@@ -179,18 +184,43 @@ function App() {
       });
     };
 
-    const win = window as typeof window & {
-      YT?: unknown;
-      onYouTubeIframeAPIReady?: () => void;
+    const loadIframeApi = () => {
+      if (win.YT?.Player) {
+        createPlayer();
+        return Promise.resolve();
+      }
+
+      if (youtubeIframeApiPromise) return youtubeIframeApiPromise;
+
+      youtubeIframeApiPromise = new Promise<void>((resolve, reject) => {
+        win.onYouTubeIframeAPIReady = () => {
+          createPlayer();
+          resolve();
+        };
+
+        if (document.getElementById(youtubeIframeApiScriptId)) return;
+
+        const script = document.createElement("script");
+        script.id = youtubeIframeApiScriptId;
+        script.src = "https://www.youtube.com/iframe_api";
+        script.async = true;
+        script.onerror = () => {
+          reject(new Error("Failed to load the YouTube iframe API."));
+        };
+        document.body.appendChild(script);
+      });
+
+      return youtubeIframeApiPromise;
     };
 
-    const script = document.createElement("script");
-    script.src = "https://www.youtube.com/iframe_api";
-    script.async = true;
-    document.body.appendChild(script);
-    win.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+    void loadIframeApi();
 
     return () => {
+      if (youtubePlayerRef.current) {
+        youtubePlayerRef.current.destroy();
+        youtubePlayerRef.current = null;
+      }
+      youtubeReadyRef.current = false;
       win.onYouTubeIframeAPIReady = undefined;
     };
   }, []);

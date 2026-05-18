@@ -5,4 +5,5 @@ export type YouTubePlayer = {
   stopVideo: () => void;
   mute: () => void;
   unMute: () => void;
+  destroy: () => void;
 };

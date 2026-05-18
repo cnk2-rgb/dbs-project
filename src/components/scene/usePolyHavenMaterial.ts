@@ -1,23 +1,29 @@
 import { useLoader } from "@react-three/fiber";
 import { useMemo } from "react";
-import { MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, TextureLoader } from "three";
+import { MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, TextureLoader, Vector2 } from "three";
 
 type PolyHavenMaterialOptions = {
   baseColor?: string;
   repeat?: [number, number];
   roughness?: number;
   metalness?: number;
+  normalScale?: number;
 };
 
 export function usePolyHavenMaterial(
   diffuseUrl: string,
   roughnessUrl: string,
+  normalUrlOrOptions?: string | PolyHavenMaterialOptions,
   options: PolyHavenMaterialOptions = {},
 ) {
-  const [diffuseMap, roughnessMap] = useLoader(TextureLoader, [diffuseUrl, roughnessUrl]);
+  const normalUrl = typeof normalUrlOrOptions === "string" ? normalUrlOrOptions : undefined;
+  const resolvedOptions = typeof normalUrlOrOptions === "string" ? options : normalUrlOrOptions ?? {};
+  const textureUrls = normalUrl ? [diffuseUrl, roughnessUrl, normalUrl] : [diffuseUrl, roughnessUrl];
+  const textures = useLoader(TextureLoader, textureUrls);
+  const [diffuseMap, roughnessMap, normalMap] = textures;
 
   return useMemo(() => {
-    const [repeatX, repeatY] = options.repeat ?? [1, 1];
+    const [repeatX, repeatY] = resolvedOptions.repeat ?? [1, 1];
 
     diffuseMap.wrapS = RepeatWrapping;
     diffuseMap.wrapT = RepeatWrapping;
@@ -30,12 +36,30 @@ export function usePolyHavenMaterial(
     roughnessMap.repeat.set(repeatX, repeatY);
     roughnessMap.needsUpdate = true;
 
+    if (normalMap) {
+      normalMap.wrapS = RepeatWrapping;
+      normalMap.wrapT = RepeatWrapping;
+      normalMap.repeat.set(repeatX, repeatY);
+      normalMap.needsUpdate = true;
+    }
+
     return new MeshStandardMaterial({
-      color: options.baseColor ?? "#ffffff",
+      color: resolvedOptions.baseColor ?? "#ffffff",
       map: diffuseMap,
       roughnessMap,
-      roughness: options.roughness ?? 0.92,
-      metalness: options.metalness ?? 0,
+      normalMap,
+      normalScale: normalMap ? new Vector2(resolvedOptions.normalScale ?? 0.85, resolvedOptions.normalScale ?? 0.85) : undefined,
+      roughness: resolvedOptions.roughness ?? 0.92,
+      metalness: resolvedOptions.metalness ?? 0,
     });
-  }, [diffuseMap, options.baseColor, options.metalness, options.repeat, options.roughness, roughnessMap]);
+  }, [
+    diffuseMap,
+    normalMap,
+    resolvedOptions.baseColor,
+    resolvedOptions.metalness,
+    resolvedOptions.normalScale,
+    resolvedOptions.repeat,
+    resolvedOptions.roughness,
+    roughnessMap,
+  ]);
 }

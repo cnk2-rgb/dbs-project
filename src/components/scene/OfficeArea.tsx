@@ -1,5 +1,6 @@
 import { useRoughMaterial } from "./useRoughMaterial";
 import { WallGroup } from "./WallGroup";
+import { usePolyHavenMaterial } from "./usePolyHavenMaterial";
 import { useGLTF } from "@react-three/drei";
 import { Suspense, useMemo } from "react";
 import { Mesh } from "three";
@@ -8,13 +9,17 @@ import { OFFICE_WALLS } from "../../lib/wallDefinitions";
 const desktopComputerModelPath = "/models/stylized-computer-set-get3dmodels.glb";
 
 export function OfficeArea() {
-  const wall = useRoughMaterial("#263238", "#0a1014", 0.84, "paint", {
-    seed: "office-wall",
-    repeat: [3, 3],
-    grimeStrength: 1.2,
-    stainStrength: 1.1,
-    warpStrength: 0.8,
-  });
+  const wall = usePolyHavenMaterial(
+    "/textures/polyhaven/decrepit_wallpaper/diffuse.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/roughness.jpg",
+    "/textures/polyhaven/decrepit_wallpaper/normal.jpg",
+    {
+      baseColor: "#e0d7c6",
+      repeat: [2.4, 1.4],
+      roughness: 0.96,
+      normalScale: 0.95,
+    },
+  );
   const deskWood = useRoughMaterial("#7f6650", "#24180f", 0.82, "wood", {
     seed: "office-desk-wood",
     repeat: [2, 3],
